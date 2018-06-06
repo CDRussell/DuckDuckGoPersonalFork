@@ -104,8 +104,17 @@
             android:parentActivityName="com.duckduckgo.app.settings.SettingsActivity"
             android:theme="@style/AppTheme" />
         <activity
+
             android:name="com.duckduckgo.app.bookmarks.ui.BookmarksActivity"
-            android:label="@string/bookmarksActivityTitle" />
+            android:label="@string/bookmarksActivityTitle" >
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="ddgbookmarks"/>
+            </intent-filter>
+
+        </activity>
 
         <service
             android:name="com.duckduckgo.app.job.AppConfigurationJobService"

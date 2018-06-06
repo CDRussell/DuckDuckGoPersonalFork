@@ -65,6 +65,17 @@ class BookmarksActivity : DuckDuckGoActivity() {
         setupActionBar()
         setupBookmarksRecycler()
         observeViewModel()
+
+        consumeDeepLink()
+    }
+
+    private fun consumeDeepLink() {
+        Timber.i("Checking if deep link exists")
+
+        val action = intent.action
+        val data = intent.data
+
+        Timber.i("Action: $action, data: $data")
     }
 
     private fun setupBookmarksRecycler() {
