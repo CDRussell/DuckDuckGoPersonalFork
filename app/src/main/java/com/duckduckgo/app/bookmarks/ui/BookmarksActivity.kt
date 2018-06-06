@@ -17,6 +17,7 @@
 package com.duckduckgo.app.bookmarks.ui
 
 import android.app.AlertDialog
+import android.app.ProgressDialog
 import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
@@ -26,9 +27,7 @@ import android.os.Bundle
 import android.support.v7.widget.DividerItemDecoration
 import android.support.v7.widget.RecyclerView.*
 import android.text.Html
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.ImageView
 import android.widget.PopupMenu
 import com.duckduckgo.app.bookmarks.db.BookmarkEntity
@@ -45,15 +44,19 @@ import kotlinx.android.synthetic.main.content_bookmarks.*
 import kotlinx.android.synthetic.main.include_toolbar.*
 import kotlinx.android.synthetic.main.view_bookmark_entry.view.*
 import org.jetbrains.anko.alert
+import org.jetbrains.anko.indeterminateProgressDialog
 import timber.log.Timber
 import javax.inject.Inject
 
-class BookmarksActivity : DuckDuckGoActivity() {
+class BookmarksActivity : DuckDuckGoActivity(), ImportBookmarksEnterKeyDialogFragment.Listener {
+
 
     @Inject
     lateinit var viewModelFactory: ViewModelFactory
     lateinit var adapter: BookmarksAdapter
     private var deleteDialog: AlertDialog? = null
+
+    private lateinit var progress: ProgressDialog
 
     private val viewModel: BookmarksViewModel by lazy {
         ViewModelProviders.of(this, viewModelFactory).get(BookmarksViewModel::class.java)
@@ -62,6 +65,7 @@ class BookmarksActivity : DuckDuckGoActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_bookmarks)
+        progress = indeterminateProgressDialog(message = "Please wait a moment", title = "Downloading bookmarks")
         setupActionBar()
         setupBookmarksRecycler()
         observeViewModel()
@@ -72,10 +76,15 @@ class BookmarksActivity : DuckDuckGoActivity() {
     private fun consumeDeepLink() {
         Timber.i("Checking if deep link exists")
 
-        val action = intent.action
-        val data = intent.data
+        val action: String? = intent.action
+        val data: Uri? = intent.data
+        val key = intent.data?.authority
 
-        Timber.i("Action: $action, data: $data")
+        Timber.i("Action: $action, data: $data, key: $key")
+
+        if (action != null && data != null && key != null) {
+            viewModel.onBookmarkImportKeyEntered(key)
+        }
     }
 
     private fun setupBookmarksRecycler() {
@@ -84,6 +93,40 @@ class BookmarksActivity : DuckDuckGoActivity() {
 
         val separator = DividerItemDecoration(this, VERTICAL)
         recycler.addItemDecoration(separator)
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.bookmarks_global_overflow_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.importBookmarks -> {
+                importBookmarks()
+                true
+            }
+            R.id.exportBookmarks -> {
+                exportBookmarks()
+                true
+            }
+            else -> false
+        }
+    }
+
+    private fun exportBookmarks() {
+        Timber.i("Will export bookmarks")
+    }
+
+    private fun importBookmarks() {
+        Timber.i("Will import bookmarks")
+        val importDialog = ImportBookmarksEnterKeyDialogFragment()
+        importDialog.listener = this
+        importDialog.show(supportFragmentManager, IMPORT_BOOKMARK_FRAGMENT_TAG)
+    }
+
+    override fun onBookmarkImportKeyEntered(key: String) {
+        viewModel.onBookmarkImportKeyEntered(key)
     }
 
     private fun setupActionBar() {
@@ -96,6 +139,12 @@ class BookmarksActivity : DuckDuckGoActivity() {
             viewState?.let {
                 if (it.showBookmarks) showBookmarks() else hideBookmarks()
                 adapter.bookmarks = it.bookmarks
+
+                if (it.isWorking) {
+                    progress.show()
+                } else {
+                    progress.hide()
+                }
             }
         })
 
@@ -147,6 +196,7 @@ class BookmarksActivity : DuckDuckGoActivity() {
 
     override fun onDestroy() {
         deleteDialog?.dismiss()
+        progress.dismiss()
         super.onDestroy()
     }
 
@@ -157,10 +207,15 @@ class BookmarksActivity : DuckDuckGoActivity() {
 
         // Fragment Tags
         private const val EDIT_BOOKMARK_FRAGMENT_TAG = "EDIT_BOOKMARK"
+        private const val IMPORT_BOOKMARK_FRAGMENT_TAG = "IMPORT_BOOKMARK"
+        private const val EXPORT_BOOKMARK_FRAGMENT_TAG = "EXPORT_BOOKMARK"
+
     }
 
-    class BookmarksAdapter(private val context: Context,
-                           private val viewModel: BookmarksViewModel) : Adapter<BookmarksViewHolder>() {
+    class BookmarksAdapter(
+        private val context: Context,
+        private val viewModel: BookmarksViewModel
+    ) : Adapter<BookmarksViewHolder>() {
 
         var bookmarks: List<BookmarkEntity> = emptyList()
             set(value) {
@@ -213,10 +268,10 @@ class BookmarksActivity : DuckDuckGoActivity() {
             val faviconUrl = Uri.parse(url).faviconLocation()
 
             GlideApp.with(itemView)
-                    .load(faviconUrl)
-                    .placeholder(R.drawable.ic_globe_white_16dp)
-                    .error(R.drawable.ic_globe_white_16dp)
-                    .into(itemView.favicon)
+                .load(faviconUrl)
+                .placeholder(R.drawable.ic_globe_white_16dp)
+                .error(R.drawable.ic_globe_white_16dp)
+                .into(itemView.favicon)
         }
 
         private fun parseDisplayUrl(urlString: String): String {

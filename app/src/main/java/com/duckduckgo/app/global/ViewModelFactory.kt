@@ -19,6 +19,7 @@ package com.duckduckgo.app.global
 import android.arch.lifecycle.ViewModel
 import android.arch.lifecycle.ViewModelProvider
 import com.duckduckgo.app.autocomplete.api.AutoCompleteApi
+import com.duckduckgo.app.bookmarks.api.BookmarkSyncService
 import com.duckduckgo.app.bookmarks.db.BookmarksDao
 import com.duckduckgo.app.bookmarks.ui.BookmarksViewModel
 import com.duckduckgo.app.browser.BrowserTabViewModel
@@ -65,6 +66,7 @@ class ViewModelFactory @Inject constructor(
     private val defaultBrowserNotification: DefaultBrowserNotification,
     private val webViewLongPressHandler: LongPressHandler,
     private val defaultBrowserDetector: DefaultBrowserDetector,
+    private val bookmarkSyncService: BookmarkSyncService,
     private val variantManager: VariantManager
 
 ) : ViewModelProvider.NewInstanceFactory() {
@@ -82,7 +84,7 @@ class ViewModelFactory @Inject constructor(
                     isAssignableFrom(TrackerNetworksViewModel::class.java) -> TrackerNetworksViewModel()
                     isAssignableFrom(PrivacyPracticesViewModel::class.java) -> PrivacyPracticesViewModel()
                     isAssignableFrom(SettingsViewModel::class.java) -> SettingsViewModel( appSettingsPreferencesStore, defaultBrowserDetector)
-                    isAssignableFrom(BookmarksViewModel::class.java) -> BookmarksViewModel(bookmarksDao)
+                    isAssignableFrom(BookmarksViewModel::class.java) -> BookmarksViewModel(bookmarksDao, bookmarkSyncService)
                     else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
                 }
             } as T

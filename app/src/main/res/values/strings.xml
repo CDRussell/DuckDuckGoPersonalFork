@@ -181,5 +181,9 @@
 
     <!-- Widget -->
     <string name="searchWidgetTextHint">Search DuckDuckGo</string>
+    <string name="export">Export Bookmarks</string>
+    <string name="importBookmarks">Import Bookmarks</string>
+    <string name="importBookmarksEnterUniqueKey">Enter bookmark key</string>
+    <string name="invalidBookmarkKey">Invalid key</string>
 
 </resources>
