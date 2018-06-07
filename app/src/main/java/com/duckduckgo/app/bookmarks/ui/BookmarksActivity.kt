@@ -315,11 +315,18 @@ class BookmarksActivity : DuckDuckGoActivity(), ImportBookmarksEnterKeyDialogFra
                     R.id.delete -> {
                         deleteBookmark(bookmark); true
                     }
+                    R.id.share -> {
+                        shareBookmark(bookmark); true
+                    }
                     else -> false
 
                 }
             }
             popup.show()
+        }
+
+        private fun shareBookmark(bookmark: BookmarkEntity) {
+            viewModel.exportBookmarks(listOf(bookmark))
         }
 
 

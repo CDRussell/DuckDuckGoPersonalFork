@@ -189,5 +189,6 @@
     <string name="downloadingBookmarks">Downloading Bookmarks</string>
     <string name="uploadingBookmarks">Uploading Bookmarks</string>
     <string name="confirmImportBookmarks">You should only download bookmarks from trusted sources.\n\nAre you sure you want to download these bookmarks?</string>
+    <string name="share">Share</string>
 
 </resources>

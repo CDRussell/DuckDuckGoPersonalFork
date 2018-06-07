@@ -91,12 +91,13 @@ class BookmarksViewModel(private val dao: BookmarksDao, private val bookmarkSync
         command.value = ShowEditBookmark(bookmark)
     }
 
-    fun exportBookmarks() {
+    fun exportBookmarks(bookmarks: List<BookmarkEntity>? = null) {
 
         viewState.value = viewState.value!!.copy(isUploading = true)
 
         val task: Single<String> = Single.fromCallable({
-            val requestBody = BookmarkSyncService.BookmarksSyncUploadRequest(lastSeenBookmarks)
+            val bookmarksToShare = bookmarks ?: lastSeenBookmarks
+            val requestBody = BookmarkSyncService.BookmarksSyncUploadRequest(bookmarksToShare)
             val response = bookmarkSyncService.uploadBookmarks(requestBody).execute()
             if (!response.isSuccessful) {
                 throw IOException("Failed to upload bookmarks - ${response.errorBody()?.string()}")
