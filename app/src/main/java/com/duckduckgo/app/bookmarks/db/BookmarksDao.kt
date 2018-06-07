@@ -22,7 +22,7 @@ import android.arch.persistence.room.*
 @Dao
 interface BookmarksDao {
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insert(bookmark: BookmarkEntity)
 
     @Query("select * from bookmarks")

@@ -185,5 +185,9 @@
     <string name="importBookmarks">Import Bookmarks</string>
     <string name="importBookmarksEnterUniqueKey">Enter bookmark key</string>
     <string name="invalidBookmarkKey">Invalid key</string>
+    <string name="please_wait">Please wait a moment</string>
+    <string name="downloadingBookmarks">Downloading Bookmarks</string>
+    <string name="uploadingBookmarks">Uploading Bookmarks</string>
+    <string name="confirmImportBookmarks">You should only download bookmarks from trusted sources.\n\nAre you sure you want to download these bookmarks?</string>
 
 </resources>

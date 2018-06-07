@@ -108,6 +108,12 @@ class BrowserActivity : DuckDuckGoActivity() {
             return
         }
 
+        val bookmarkKey = intent.data?.toString()?.substringAfter("https://ddgbookmark/")?.take(36)
+        if(!bookmarkKey.isNullOrBlank()) {
+            startActivity(BookmarksActivity.intent(this, bookmarkKey))
+            return
+        }
+
         if (launchNewSearch(intent)) {
             viewModel.onNewTabRequested()
             return

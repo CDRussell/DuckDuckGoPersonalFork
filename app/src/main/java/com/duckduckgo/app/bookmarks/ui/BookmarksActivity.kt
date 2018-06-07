@@ -45,6 +45,7 @@ import kotlinx.android.synthetic.main.include_toolbar.*
 import kotlinx.android.synthetic.main.view_bookmark_entry.view.*
 import org.jetbrains.anko.alert
 import org.jetbrains.anko.indeterminateProgressDialog
+import org.jetbrains.anko.share
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -55,6 +56,7 @@ class BookmarksActivity : DuckDuckGoActivity(), ImportBookmarksEnterKeyDialogFra
     lateinit var viewModelFactory: ViewModelFactory
     lateinit var adapter: BookmarksAdapter
     private var deleteDialog: AlertDialog? = null
+    private var importDialog: AlertDialog? = null
 
     private lateinit var progress: ProgressDialog
 
@@ -65,7 +67,7 @@ class BookmarksActivity : DuckDuckGoActivity(), ImportBookmarksEnterKeyDialogFra
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_bookmarks)
-        progress = indeterminateProgressDialog(message = "Please wait a moment", title = "Downloading bookmarks")
+        progress = indeterminateProgressDialog(message = getString(R.string.please_wait))
         setupActionBar()
         setupBookmarksRecycler()
         observeViewModel()
@@ -73,17 +75,23 @@ class BookmarksActivity : DuckDuckGoActivity(), ImportBookmarksEnterKeyDialogFra
         consumeDeepLink()
     }
 
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+
+        consumeDeepLink()
+    }
+
     private fun consumeDeepLink() {
         Timber.i("Checking if deep link exists")
 
-        val action: String? = intent.action
-        val data: Uri? = intent.data
-        val key = intent.data?.authority
+        val key = intent.getStringExtra(ARG_EXTRA_BOOKMARK_IMPORT_KEY)
 
-        Timber.i("Action: $action, data: $data, key: $key")
-
-        if (action != null && data != null && key != null) {
-            viewModel.onBookmarkImportKeyEntered(key)
+        if (key != null) {
+            importDialog = alert(getString(R.string.confirmImportBookmarks), getString(R.string.importBookmarks)) {
+                positiveButton(android.R.string.yes) { viewModel.onBookmarkImportKeyEntered(key) }
+                negativeButton(android.R.string.no) { }
+            }.build()
+            importDialog?.show()
         }
     }
 
@@ -116,6 +124,7 @@ class BookmarksActivity : DuckDuckGoActivity(), ImportBookmarksEnterKeyDialogFra
 
     private fun exportBookmarks() {
         Timber.i("Will export bookmarks")
+        viewModel.exportBookmarks()
     }
 
     private fun importBookmarks() {
@@ -140,10 +149,20 @@ class BookmarksActivity : DuckDuckGoActivity(), ImportBookmarksEnterKeyDialogFra
                 if (it.showBookmarks) showBookmarks() else hideBookmarks()
                 adapter.bookmarks = it.bookmarks
 
-                if (it.isWorking) {
-                    progress.show()
-                } else {
-                    progress.hide()
+                with(progress) {
+                    if (!it.isUploading && !it.isDownloading) {
+                        hide()
+                    } else {
+                        show()
+                    }
+
+                    if (it.isDownloading) {
+                        setTitle(R.string.downloadingBookmarks)
+                    }
+
+                    if (it.isUploading) {
+                        setTitle(R.string.uploadingBookmarks)
+                    }
                 }
             }
         })
@@ -153,6 +172,7 @@ class BookmarksActivity : DuckDuckGoActivity(), ImportBookmarksEnterKeyDialogFra
                 is BookmarksViewModel.Command.ConfirmDeleteBookmark -> confirmDeleteBookmark(it.bookmark)
                 is BookmarksViewModel.Command.OpenBookmark -> openBookmark(it.bookmark)
                 is BookmarksViewModel.Command.ShowEditBookmark -> showEditBookmarkDialog(it.bookmark)
+                is BookmarksViewModel.Command.SharedBookmarksKeyReceived -> share("https://ddgbookmark/${it.key}")
             }
         })
     }
@@ -196,19 +216,23 @@ class BookmarksActivity : DuckDuckGoActivity(), ImportBookmarksEnterKeyDialogFra
 
     override fun onDestroy() {
         deleteDialog?.dismiss()
+        importDialog?.dismiss()
         progress.dismiss()
         super.onDestroy()
     }
 
     companion object {
-        fun intent(context: Context): Intent {
-            return Intent(context, BookmarksActivity::class.java)
+        fun intent(context: Context, bookmarkKey: String? = null): Intent {
+            val i = Intent(context, BookmarksActivity::class.java)
+            i.putExtra(ARG_EXTRA_BOOKMARK_IMPORT_KEY, bookmarkKey)
+            return i
         }
 
         // Fragment Tags
         private const val EDIT_BOOKMARK_FRAGMENT_TAG = "EDIT_BOOKMARK"
         private const val IMPORT_BOOKMARK_FRAGMENT_TAG = "IMPORT_BOOKMARK"
-        private const val EXPORT_BOOKMARK_FRAGMENT_TAG = "EXPORT_BOOKMARK"
+
+        private const val ARG_EXTRA_BOOKMARK_IMPORT_KEY = "ARG_EXTRA_BOOKMARK_IMPORT_KEY"
 
     }
 

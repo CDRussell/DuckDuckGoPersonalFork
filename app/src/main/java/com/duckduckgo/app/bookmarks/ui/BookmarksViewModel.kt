@@ -32,15 +32,14 @@ import io.reactivex.schedulers.Schedulers
 import timber.log.Timber
 import java.io.IOException
 
-class BookmarksViewModel(
-    val dao: BookmarksDao,
-    val bookmarkSyncService: BookmarkSyncService
-) : SaveBookmarkListener, ViewModel(), ImportBookmarksEnterKeyDialogFragment.Listener {
+class BookmarksViewModel(private val dao: BookmarksDao, private val bookmarkSyncService: BookmarkSyncService) : SaveBookmarkListener, ViewModel(),
+    ImportBookmarksEnterKeyDialogFragment.Listener {
 
     data class ViewState(
         val showBookmarks: Boolean = false,
         val bookmarks: List<BookmarkEntity> = emptyList(),
-        val isWorking: Boolean = false
+        val isDownloading: Boolean = false,
+        val isUploading: Boolean = false
     )
 
     sealed class Command {
@@ -48,12 +47,14 @@ class BookmarksViewModel(
         class OpenBookmark(val bookmark: BookmarkEntity) : Command()
         class ConfirmDeleteBookmark(val bookmark: BookmarkEntity) : Command()
         class ShowEditBookmark(val bookmark: BookmarkEntity) : Command()
+        class SharedBookmarksKeyReceived(val key: String) : Command()
 
     }
 
     val viewState: MutableLiveData<ViewState> = MutableLiveData()
     val command: SingleLiveEvent<Command> = SingleLiveEvent()
 
+    private var lastSeenBookmarks: List<BookmarkEntity> = emptyList()
     private val bookmarks: LiveData<List<BookmarkEntity>> = dao.bookmarks()
     private val bookmarksObserver = Observer<List<BookmarkEntity>> { onBookmarksChanged(it!!) }
 
@@ -74,6 +75,7 @@ class BookmarksViewModel(
     }
 
     private fun onBookmarksChanged(bookmarks: List<BookmarkEntity>) {
+        lastSeenBookmarks = bookmarks
         viewState.value = viewState.value?.copy(showBookmarks = bookmarks.isNotEmpty(), bookmarks = bookmarks)
     }
 
@@ -89,23 +91,44 @@ class BookmarksViewModel(
         command.value = ShowEditBookmark(bookmark)
     }
 
-    override fun onBookmarkImportKeyEntered(key: String) {
-        viewState.value = viewState.value!!.copy(isWorking = true)
+    fun exportBookmarks() {
 
-        Timber.i("Received bookmark import key $key")
+        viewState.value = viewState.value!!.copy(isUploading = true)
+
+        val task: Single<String> = Single.fromCallable({
+            val requestBody = BookmarkSyncService.BookmarksSyncUploadRequest(lastSeenBookmarks)
+            val response = bookmarkSyncService.uploadBookmarks(requestBody).execute()
+            if (!response.isSuccessful) {
+                throw IOException("Failed to upload bookmarks - ${response.errorBody()?.string()}")
+            }
+
+            return@fromCallable response.headers().get("Location") ?: throw IOException("No location value returned")
+
+        })
+
+        task.subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .doAfterTerminate { viewState.value = viewState.value!!.copy(isUploading = false) }
+            .subscribe({
+                Timber.i("Successfully uploaded bookmarks - generated key of $it")
+                command.value = SharedBookmarksKeyReceived(it)
+            }, { throwable ->
+                Timber.w(throwable, "Failed to upload bookmarks")
+            })
+    }
+
+    override fun onBookmarkImportKeyEntered(key: String) {
+        viewState.value = viewState.value!!.copy(isDownloading = true)
+
+        val trimmedKey = key.trim()
+        Timber.i("Received bookmark import key $trimmedKey")
         val single: Single<BookmarkSyncService.BookmarkSyncResponse> = Single.fromCallable({
-            val response = bookmarkSyncService.getBookmarks(key).execute()
+            val response = bookmarkSyncService.getBookmarks(trimmedKey).execute()
             if (!response.isSuccessful) {
                 throw IOException("Failed to obtain bookmarks - ${response.errorBody()?.string()}")
             }
 
-            val body = response.body()
-            if (body == null) {
-                Timber.w("Response body was null")
-                throw IOException("Response body was null")
-            }
-
-            return@fromCallable body
+            return@fromCallable response.body() ?: throw IOException("Response body was null")
         })
 
 
@@ -113,12 +136,13 @@ class BookmarksViewModel(
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .doAfterTerminate({
-                viewState.value = viewState.value!!.copy(isWorking = false)
+                viewState.value = viewState.value!!.copy(isDownloading = false)
             })
             .observeOn(Schedulers.io())
             .subscribe({
                 Timber.i("Successfully retrieved ${it.bookmarks.size} bookmarks")
                 it.bookmarks.forEach {
+                    Timber.d("Inserting $it")
                     dao.insert(it)
                 }
             }, { throwable ->
