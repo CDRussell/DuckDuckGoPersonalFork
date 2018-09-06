@@ -20,19 +20,14 @@ import android.arch.lifecycle.LiveData
 import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModel
-import com.duckduckgo.app.bookmarks.api.BookmarkSyncService
 import com.duckduckgo.app.bookmarks.db.BookmarkEntity
 import com.duckduckgo.app.bookmarks.db.BookmarksDao
 import com.duckduckgo.app.bookmarks.ui.BookmarksViewModel.Command.*
 import com.duckduckgo.app.bookmarks.ui.SaveBookmarkDialogFragment.SaveBookmarkListener
 import com.duckduckgo.app.global.SingleLiveEvent
-import io.reactivex.Single
-import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
-import timber.log.Timber
-import java.io.IOException
 
-class BookmarksViewModel(private val dao: BookmarksDao, private val bookmarkSyncService: BookmarkSyncService) : SaveBookmarkListener, ViewModel(),
+class BookmarksViewModel(private val dao: BookmarksDao) : SaveBookmarkListener, ViewModel(),
     ImportBookmarksEnterKeyDialogFragment.Listener {
 
     data class ViewState(
@@ -93,63 +88,63 @@ class BookmarksViewModel(private val dao: BookmarksDao, private val bookmarkSync
 
     fun exportBookmarks(bookmarks: List<BookmarkEntity>? = null) {
 
-        viewState.value = viewState.value!!.copy(isUploading = true)
-
-        val task: Single<String> = Single.fromCallable({
-            val bookmarksToShare = bookmarks ?: lastSeenBookmarks
-            val requestBody = BookmarkSyncService.BookmarksSyncUploadRequest(bookmarksToShare)
-            val response = bookmarkSyncService.uploadBookmarks(requestBody).execute()
-            if (!response.isSuccessful) {
-                throw IOException("Failed to upload bookmarks - ${response.errorBody()?.string()}")
-            }
-
-            return@fromCallable response.headers().get("Location") ?: throw IOException("No location value returned")
-
-        })
-
-        task.subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .doAfterTerminate { viewState.value = viewState.value!!.copy(isUploading = false) }
-            .subscribe({
-                Timber.i("Successfully uploaded bookmarks - generated key of $it")
-                command.value = SharedBookmarksKeyReceived(it)
-            }, { throwable ->
-                Timber.w(throwable, "Failed to upload bookmarks")
-            })
+//        viewState.value = viewState.value!!.copy(isUploading = true)
+//
+//        val task: Single<String> = Single.fromCallable({
+//            val bookmarksToShare = bookmarks ?: lastSeenBookmarks
+//            val requestBody = BookmarkSyncService.BookmarksSyncUploadRequest(bookmarksToShare)
+//            val response = bookmarkSyncService.uploadBookmarks(requestBody).execute()
+//            if (!response.isSuccessful) {
+//                throw IOException("Failed to upload bookmarks - ${response.errorBody()?.string()}")
+//            }
+//
+//            return@fromCallable response.headers().get("Location") ?: throw IOException("No location value returned")
+//
+//        })
+//
+//        task.subscribeOn(Schedulers.io())
+//            .observeOn(AndroidSchedulers.mainThread())
+//            .doAfterTerminate { viewState.value = viewState.value!!.copy(isUploading = false) }
+//            .subscribe({
+//                Timber.i("Successfully uploaded bookmarks - generated key of $it")
+//                command.value = SharedBookmarksKeyReceived(it)
+//            }, { throwable ->
+//                Timber.w(throwable, "Failed to upload bookmarks")
+//            })
     }
 
     override fun onBookmarkImportKeyEntered(key: String) {
-        viewState.value = viewState.value!!.copy(isDownloading = true)
-
-        val trimmedKey = key.trim()
-        Timber.i("Received bookmark import key $trimmedKey")
-        val single: Single<BookmarkSyncService.BookmarkSyncResponse> = Single.fromCallable({
-            val response = bookmarkSyncService.getBookmarks(trimmedKey).execute()
-            if (!response.isSuccessful) {
-                throw IOException("Failed to obtain bookmarks - ${response.errorBody()?.string()}")
-            }
-
-            return@fromCallable response.body() ?: throw IOException("Response body was null")
-        })
-
-
-        single
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .doAfterTerminate({
-                viewState.value = viewState.value!!.copy(isDownloading = false)
-            })
-            .observeOn(Schedulers.io())
-            .subscribe({
-                Timber.i("Successfully retrieved ${it.bookmarks.size} bookmarks")
-                it.bookmarks.forEach {
-                    Timber.d("Inserting $it")
-                    dao.insert(it)
-                }
-            }, { throwable ->
-                Timber.w(throwable, "Failed to retrieve bookmarks")
-
-            })
+//        viewState.value = viewState.value!!.copy(isDownloading = true)
+//
+//        val trimmedKey = key.trim()
+//        Timber.i("Received bookmark import key $trimmedKey")
+//        val single: Single<BookmarkSyncService.BookmarkSyncResponse> = Single.fromCallable({
+//            val response = bookmarkSyncService.getBookmarks(trimmedKey).execute()
+//            if (!response.isSuccessful) {
+//                throw IOException("Failed to obtain bookmarks - ${response.errorBody()?.string()}")
+//            }
+//
+//            return@fromCallable response.body() ?: throw IOException("Response body was null")
+//        })
+//
+//
+//        single
+//            .subscribeOn(Schedulers.io())
+//            .observeOn(AndroidSchedulers.mainThread())
+//            .doAfterTerminate({
+//                viewState.value = viewState.value!!.copy(isDownloading = false)
+//            })
+//            .observeOn(Schedulers.io())
+//            .subscribe({
+//                Timber.i("Successfully retrieved ${it.bookmarks.size} bookmarks")
+//                it.bookmarks.forEach {
+//                    Timber.d("Inserting $it")
+//                    dao.insert(it)
+//                }
+//            }, { throwable ->
+//                Timber.w(throwable, "Failed to retrieve bookmarks")
+//
+//            })
 
     }
 
