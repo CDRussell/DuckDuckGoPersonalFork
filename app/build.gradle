@@ -79,7 +79,7 @@ android {
 
         if (signingFileUrl != null && signingKeyStoreAlias != null && signingKeyStorePassword != null && signingKeyPassword != null) {
             println("it has it")
-            android.signingConfigs.release.storeFile = file(signingFileUrl)
+            android.signingConfigs.release.storeFile = signingFileUrl
             android.signingConfigs.release.storePassword = signingKeyStorePassword
             android.signingConfigs.release.keyAlias = signingKeyStoreAlias
             android.signingConfigs.release.keyPassword = signingKeyPassword
