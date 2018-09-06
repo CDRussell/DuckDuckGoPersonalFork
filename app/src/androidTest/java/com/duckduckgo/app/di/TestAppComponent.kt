@@ -20,7 +20,7 @@ import android.app.Application
 import com.duckduckgo.app.TestApplication
 import com.duckduckgo.app.browser.autoComplete.BrowserAutoCompleteModule
 import com.duckduckgo.app.browser.di.BrowserModule
-import com.duckduckgo.app.browser.di.DefaultBrowserModule
+import com.duckduckgo.app.browser.favicon.FaviconModule
 import com.duckduckgo.app.httpsupgrade.di.HttpsUpgraderModule
 import com.duckduckgo.app.onboarding.di.OnboardingModule
 import com.duckduckgo.app.surrogates.di.ResourceSurrogateModule
@@ -54,9 +54,9 @@ import javax.inject.Singleton
     ResourceSurrogateModule::class,
     TrackerDetectionModule::class,
     NotificationModule::class,
-    DefaultBrowserModule::class,
     OnboardingModule::class,
-    VariantModule::class
+    VariantModule::class,
+    FaviconModule::class
 ])
 interface TestAppComponent : AndroidInjector<TestApplication> {
 

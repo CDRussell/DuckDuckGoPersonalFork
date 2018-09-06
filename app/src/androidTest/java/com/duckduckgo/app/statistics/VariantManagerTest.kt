@@ -16,39 +16,31 @@
 
 package com.duckduckgo.app.statistics
 
-import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertEquals
 import org.junit.Assert.fail
 import org.junit.Test
 
 class VariantManagerTest {
 
     private val variants = VariantManager.ACTIVE_VARIANTS
-    private val totalWeight = variants.sumByDouble { it.weight }
 
     @Test
-    fun whenChanceOfControlVariantCalculatedThenOddsAreOneInTwo() {
-        val variant = variants.firstOrNull { it.key == "my" }
-        assertNotNull(variant)
-        assertEqualsDouble( 0.5, variant!!.weight / totalWeight)
+    fun serpVariantAConfiguredCorrectly() {
+        val variant = variants.firstOrNull { it.key == "sa" }
+        assertEqualsDouble(1.0, variant!!.weight)
+        assertEquals(0, variant.features.size)
     }
 
     @Test
-    fun whenChanceOfOnboardingOnlyVariantCalculatedThenOddsAreOneInFour() {
-        val variant = variants.firstOrNull { it.key == "mw" }
-        assertNotNull(variant)
-        assertEqualsDouble( 0.25, variant!!.weight / totalWeight)
-    }
-
-    @Test
-    fun whenChanceOfOnboardingAndReminderVariantCalculatedThenOddsAreOneInFour() {
-        val variant = variants.firstOrNull { it.key == "mx" }
-        assertNotNull(variant)
-        assertEqualsDouble( 0.25, variant!!.weight / totalWeight)
+    fun serpVariantBConfiguredCorrectly() {
+        val variant = variants.firstOrNull { it.key == "sb" }
+        assertEqualsDouble(1.0, variant!!.weight)
+        assertEquals(0, variant.features.size)
     }
 
     private fun assertEqualsDouble(expected: Double, actual: Double) {
         val comparison = expected.compareTo(actual)
-        if(comparison != 0) {
+        if (comparison != 0) {
             fail("Doubles are not equal. Expected $expected but was $actual")
         }
     }

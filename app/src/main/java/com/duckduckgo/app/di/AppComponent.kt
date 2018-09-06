@@ -18,10 +18,9 @@ package com.duckduckgo.app.di
 
 
 import android.app.Application
-import com.duckduckgo.app.bookmarks.di.BookmarkModule
 import com.duckduckgo.app.browser.autoComplete.BrowserAutoCompleteModule
 import com.duckduckgo.app.browser.di.BrowserModule
-import com.duckduckgo.app.browser.di.DefaultBrowserModule
+import com.duckduckgo.app.browser.favicon.FaviconModule
 import com.duckduckgo.app.global.DuckDuckGoApplication
 import com.duckduckgo.app.httpsupgrade.di.HttpsUpgraderModule
 import com.duckduckgo.app.onboarding.di.OnboardingModule
@@ -34,31 +33,28 @@ import dagger.android.support.AndroidSupportInjectionModule
 import javax.inject.Singleton
 
 @Singleton
-@Component(
-    modules = [
-        ApplicationModule::class,
-        JobsModule::class,
-        AndroidBindingModule::class,
-        AndroidSupportInjectionModule::class,
-        NetworkModule::class,
-        AppConfigurationDownloaderModule::class,
-        StatisticsModule::class,
-        StoreModule::class,
-        DatabaseModule::class,
-        DaoModule::class,
-        JsonModule::class,
-        BrowserModule::class,
-        BrowserAutoCompleteModule::class,
-        HttpsUpgraderModule::class,
-        ResourceSurrogateModule::class,
-        TrackerDetectionModule::class,
-        NotificationModule::class,
-        DefaultBrowserModule::class,
-        OnboardingModule::class,
-        VariantModule::class,
-        BookmarkModule::class
-    ]
-)
+@Component(modules = [
+    ApplicationModule::class,
+    JobsModule::class,
+    AndroidBindingModule::class,
+    AndroidSupportInjectionModule::class,
+    NetworkModule::class,
+    AppConfigurationDownloaderModule::class,
+    StatisticsModule::class,
+    StoreModule::class,
+    DatabaseModule::class,
+    DaoModule::class,
+    JsonModule::class,
+    BrowserModule::class,
+    BrowserAutoCompleteModule::class,
+    HttpsUpgraderModule::class,
+    ResourceSurrogateModule::class,
+    TrackerDetectionModule::class,
+    NotificationModule::class,
+    OnboardingModule::class,
+    VariantModule::class,
+    FaviconModule::class
+])
 interface AppComponent : AndroidInjector<DuckDuckGoApplication> {
 
     @Component.Builder

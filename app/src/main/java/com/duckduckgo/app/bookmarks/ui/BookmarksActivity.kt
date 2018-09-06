@@ -19,7 +19,6 @@ package com.duckduckgo.app.bookmarks.ui
 import android.app.AlertDialog
 import android.app.ProgressDialog
 import android.arch.lifecycle.Observer
-import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -34,7 +33,6 @@ import com.duckduckgo.app.bookmarks.db.BookmarkEntity
 import com.duckduckgo.app.browser.BrowserActivity
 import com.duckduckgo.app.browser.R
 import com.duckduckgo.app.global.DuckDuckGoActivity
-import com.duckduckgo.app.global.ViewModelFactory
 import com.duckduckgo.app.global.baseHost
 import com.duckduckgo.app.global.faviconLocation
 import com.duckduckgo.app.global.image.GlideApp
@@ -47,22 +45,17 @@ import org.jetbrains.anko.alert
 import org.jetbrains.anko.indeterminateProgressDialog
 import org.jetbrains.anko.share
 import timber.log.Timber
-import javax.inject.Inject
 
 class BookmarksActivity : DuckDuckGoActivity(), ImportBookmarksEnterKeyDialogFragment.Listener {
 
 
-    @Inject
-    lateinit var viewModelFactory: ViewModelFactory
     lateinit var adapter: BookmarksAdapter
     private var deleteDialog: AlertDialog? = null
     private var importDialog: AlertDialog? = null
 
     private lateinit var progress: ProgressDialog
 
-    private val viewModel: BookmarksViewModel by lazy {
-        ViewModelProviders.of(this, viewModelFactory).get(BookmarksViewModel::class.java)
-    }
+    private val viewModel: BookmarksViewModel by bindViewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -262,7 +255,7 @@ class BookmarksActivity : DuckDuckGoActivity(), ImportBookmarksEnterKeyDialogFra
         }
     }
 
-    class BookmarksViewHolder(itemView: View?, private val viewModel: BookmarksViewModel) :
+    class BookmarksViewHolder(itemView: View, private val viewModel: BookmarksViewModel) :
         ViewHolder(itemView) {
 
         lateinit var bookmark: BookmarkEntity

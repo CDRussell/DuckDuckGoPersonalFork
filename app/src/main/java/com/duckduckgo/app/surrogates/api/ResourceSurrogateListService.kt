@@ -24,5 +24,5 @@ import retrofit2.http.GET
 interface ResourceSurrogateListService {
 
     @GET("/contentblocking.js?l=surrogates")
-    fun https(): Call<ResponseBody>
+    fun surrogates(): Call<ResponseBody>
 }

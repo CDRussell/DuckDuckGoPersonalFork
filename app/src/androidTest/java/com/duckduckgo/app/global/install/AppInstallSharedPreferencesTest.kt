@@ -36,11 +36,6 @@ class AppInstallSharedPreferencesTest {
     }
 
     @Test
-    fun whenInitializedThenUserHasNotBeenMarkedAsHavingPreviouslyDeclined() {
-        assertFalse(testee.hasUserDeclinedDefaultBrowserPreviously())
-    }
-
-    @Test
     fun whenInitializedThenInstallTimestampNotYetRecorded() {
         assertFalse(testee.hasInstallTimestampRecorded())
     }
@@ -58,17 +53,4 @@ class AppInstallSharedPreferencesTest {
         testee.installTimestamp = timestamp
         assertEquals(timestamp, testee.installTimestamp)
     }
-
-    @Test
-    fun whenUserPreviouslyDeclinedThenThatIsReturnedWhenQueried() {
-        val timestamp = 1L
-        testee.recordUserDeclinedToSetDefaultBrowser(timestamp)
-        assertTrue(testee.hasUserDeclinedDefaultBrowserPreviously())
-    }
-
-    @Test
-    fun whenUserNotPreviouslyDeclinedThenThatIsReturnedWhenQueried() {
-        assertFalse(testee.hasUserDeclinedDefaultBrowserPreviously())
-    }
-
 }

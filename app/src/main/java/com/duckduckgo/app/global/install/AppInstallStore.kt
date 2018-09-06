@@ -27,9 +27,6 @@ interface AppInstallStore {
     var installTimestamp: Long
 
     fun hasInstallTimestampRecorded() : Boolean
-    fun recordUserDeclinedToSetDefaultBrowser(timestamp: Long = System.currentTimeMillis())
-    fun hasUserDeclinedDefaultBrowserPreviously(): Boolean
-    fun clearUserDeclineState()
 }
 
 class AppInstallSharedPreferences @Inject constructor(private val context: Context) : AppInstallStore {
@@ -39,20 +36,6 @@ class AppInstallSharedPreferences @Inject constructor(private val context: Conte
 
     override fun hasInstallTimestampRecorded(): Boolean = preferences.contains(KEY_TIMESTAMP_UTC)
 
-    override fun recordUserDeclinedToSetDefaultBrowser(timestamp: Long) {
-        preferences.edit {
-            putLong(KEY_TIMESTAMP_USER_DECLINED_DEFAULT_BROWSER, timestamp)
-        }
-    }
-
-    override fun hasUserDeclinedDefaultBrowserPreviously(): Boolean {
-        return preferences.contains(KEY_TIMESTAMP_USER_DECLINED_DEFAULT_BROWSER)
-    }
-
-    override fun clearUserDeclineState() {
-        preferences.edit { remove(KEY_TIMESTAMP_USER_DECLINED_DEFAULT_BROWSER) }
-    }
-
     private val preferences: SharedPreferences
             get() = context.getSharedPreferences(FILENAME, Context.MODE_PRIVATE)
 
@@ -61,6 +44,5 @@ class AppInstallSharedPreferences @Inject constructor(private val context: Conte
             @VisibleForTesting
             const val FILENAME = "com.duckduckgo.app.install.settings"
             const val KEY_TIMESTAMP_UTC = "INSTALL_TIMESTAMP_UTC"
-            const val KEY_TIMESTAMP_USER_DECLINED_DEFAULT_BROWSER = "USER_DECLINED_DEFAULT_BROWSER_TIMESTAMP_UTC"
         }
 }

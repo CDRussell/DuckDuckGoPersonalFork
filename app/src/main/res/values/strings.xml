@@ -24,6 +24,10 @@
     <string name="notificationDefaultBrowserDismissButton">Dismiss notification banner</string>
     <string name="settingsDefaultBrowserEnabled">Set as Default Browser</string>
 
+    <string name="homeScreenCallToActionTitle_Exp2">Make Us Your Default Browser!</string>
+    <string name="homeScreenCallToActionSubtitle_Exp2">For Full-Time Tracking Protection</string>
+    <string name="homeScreenCallToActionButtonText_Exp2">Show Me</string>
+
     <!-- Browser Activity -->
     <string name="browserPopupMenu">Browser menu</string>
     <string name="refresh">Refresh</string>
@@ -50,7 +54,7 @@
     <string name="shareMenuTitle">Share…</string>
 
     <!-- Find in page -->
-    <string name="find_in_page">Find in page</string>
+    <string name="findInPageMenuTitle">Find in Page</string>
     <string name="nextSearchTermDescription">Find next</string>
     <string name="previousSearchTermDescription">Find previous</string>
     <string name="closeFindInPageButtonDescription">Close find in page view</string>
@@ -61,17 +65,25 @@
     <string name="editQueryBeforeSubmitting">Edit query before searching</string>
     <string name="settingsAutocompleteEnabled">Autocomplete Suggestions</string>
 
+    <!-- Opening external apps -->
+    <string name="openExternalApp">Open External App</string>
+    <string name="launchingExternalApp">Open in Another App</string>
+    <string name="confirmOpenExternalApp">Would you like to leave DuckDuckGo to view this content?</string>
+    <string name="unableToOpenLink">Unable to open this type of link</string>
+
     <!-- Tabs -->
     <string name="homeTab">DuckDuckGo</string>
     <string name="tabActivityTitle">Tabs</string>
     <string name="tabsMenuItem">Tabs</string>
     <string name="newTabMenuItem">New Tab</string>
     <string name="openInNewTab">Open in New Tab</string>
+    <string name="openInNewBackgroundTab">Open In Background Tab</string>
     <string name="faviconContentDescription">Favicon</string>
     <string name="closeContentDescription">Close</string>
     <string name="tapFireDirective">Tap </string>
     <string name="tapFireIconDescription">fire</string>
     <string name="tapFireExplanation"> to forget everything</string>
+    <string name="closeAllTabsMenuItem">Close All Tabs</string>
 
     <!-- Privacy Dashboard Activities -->
     <string name="privacyDashboardActivityTitle">Privacy Dashboard</string>
@@ -142,6 +154,7 @@
     <string name="fireClearAll">Clear All Tabs and Data</string>
     <string name="fireCancel">Cancel</string>
     <string name="fireDataCleared">Data cleared</string>
+    <string name="fireProcessName">:fire</string>
 
     <!-- Settings Activity -->
     <string name="settingsActivityTitle">Settings</string>
@@ -162,6 +175,19 @@
         After all, the internet shouldn\'t feel so creepy, and getting the privacy you deserve online should be as simple closing the blinds.</string>
     <string name="aboutMoreLink">More at duckduckgo.com/about</string>
     <string name="no_suggestions">No Suggestions</string>
+
+    <!-- Feedback Activity -->
+    <string name="feedbackActivityTitle">Feedback</string>
+    <string name="feedbackReportBrokenSiteMenuItem">Report Broken Site</string>
+    <string name="feedbackHeading">Share Your Feedback</string>
+    <string name="feedbackModalDescription">Anonymously share your feedback to help us improve the DuckDuckGo Privacy Browser</string>
+    <string name="feedbackReportBrokenSite">Report a broken site</string>
+    <string name="feedbackUrlHint">Enter URL</string>
+    <string name="feedbackMessageHint">How can the app be improved? What do you love? What\'s breaking? Please be as specific as possible.</string>
+    <string name="feedbackBrokenSiteHint">Which website content or functionality is breaking? Please be as specific as possible.</string>
+    <string name="feedbackSubmitButton">Submit Feedback</string>
+    <string name="feedbackIsAnonymousLink">Your feedback is completely anonymous</string>
+    <string name="feedbackSubmitted">Thank you! Feedback submitted</string>
 
     <!-- Bookmarks Activity -->
     <string name="bookmarksMenuTitle">Bookmarks</string>
@@ -190,5 +216,8 @@
     <string name="uploadingBookmarks">Uploading Bookmarks</string>
     <string name="confirmImportBookmarks">You should only download bookmarks from trusted sources.\n\nAre you sure you want to download these bookmarks?</string>
     <string name="share">Share</string>
+
+    <!-- Home Screen Shortcuts -->
+    <string name="addToHome">Add to Home</string>
 
 </resources>

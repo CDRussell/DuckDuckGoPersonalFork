@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT" />
 
     <application
         android:name="com.duckduckgo.app.global.DuckDuckGoApplication"
@@ -16,7 +17,6 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
-
         <meta-data
             android:name="android.webkit.WebView.MetricsOptOut"
             android:value="true" />
@@ -40,8 +40,8 @@
         </activity>
         <activity
             android:name="com.duckduckgo.app.onboarding.ui.OnboardingActivity"
-            android:theme="@style/AppTheme.TransparentTheme"
-            android:label="@string/appName" />
+            android:label="@string/appName"
+            android:theme="@style/AppTheme.TransparentTheme" />
         <activity
             android:name=".BrowserActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
@@ -99,6 +99,10 @@
             android:name="com.duckduckgo.app.settings.SettingsActivity"
             android:label="@string/settingsActivityTitle" />
         <activity
+            android:name="com.duckduckgo.app.feedback.ui.FeedbackActivity"
+            android:label="@string/feedbackActivityTitle"
+            android:theme="@style/ModalCardTheme" />
+        <activity
             android:name="com.duckduckgo.app.about.AboutDuckDuckGoActivity"
             android:label="@string/aboutActivityTitle"
             android:parentActivityName="com.duckduckgo.app.settings.SettingsActivity"
@@ -133,7 +137,12 @@
 
         <activity
             android:name=".defaultBrowsing.DefaultBrowserInfoActivity"
-            android:theme="@style/Theme.AppCompat.Translucent" />
+            android:theme="@style/ModalCardTheme" />
+
+        <activity
+            android:name="com.duckduckgo.app.fire.FireActivity"
+            android:process="@string/fireProcessName"
+            android:theme="@style/SplashTheme" />
     </application>
 
 </manifest>
