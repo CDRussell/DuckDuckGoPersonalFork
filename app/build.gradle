@@ -70,8 +70,23 @@ android {
         android.signingConfigs.release.keyAlias = props['key.alias']
         android.signingConfigs.release.keyPassword = props['key.alias.password']
     } else {
-        println "Signing properties not found at ${propertiesPath}, releases will NOT succeed"
-        android.buildTypes.release.signingConfig = null
+        println "Signing properties not found at ${propertiesPath}; checking if provided by environment variables"
+
+        def signingFileUrl = System.getenv("BITRISEIO_ANDROID_KEYSTORE_URL")
+        def signingKeyStorePassword = System.getenv("BITRISEIO_ANDROID_KEYSTORE_PASSWORD")
+        def signingKeyStoreAlias = System.getenv("BITRISEIO_ANDROID_KEYSTORE_ALIAS")
+        def signingKeyPassword = System.getenv("BITRISEIO_ANDROID_KEYSTORE_PRIVATE_KEY_PASSWORD")
+
+        if (signingFileUrl != null && signingKeyStoreAlias != null && signingKeyStorePassword != null && signingKeyPassword != null) {
+            println("it has it")
+            android.signingConfigs.release.storeFile = file(signingFileUrl)
+            android.signingConfigs.release.storePassword = signingKeyStorePassword
+            android.signingConfigs.release.keyAlias = signingKeyStoreAlias
+            android.signingConfigs.release.keyPassword = signingKeyPassword
+        } else {
+            println("nope!")
+            android.buildTypes.release.signingConfig = null
+        }
     }
 }
 
