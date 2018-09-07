@@ -68,16 +68,7 @@ private void configureSigningConfig() {
     if (propertiesFile.exists()) {
         signWithJenkins(propertiesFile, staticConfigPath)
     } else {
-        def signingFileUrl = System.getenv("BITRISEIO_ANDROID_KEYSTORE_URL")
-        def signingKeyStorePassword = System.getenv("BITRISEIO_ANDROID_KEYSTORE_PASSWORD")
-        def signingKeyStoreAlias = System.getenv("BITRISEIO_ANDROID_KEYSTORE_ALIAS")
-        def signingKeyPassword = System.getenv("BITRISEIO_ANDROID_KEYSTORE_PRIVATE_KEY_PASSWORD")
-
-        if (signingFileUrl != null && signingKeyStoreAlias != null && signingKeyStorePassword != null && signingKeyPassword != null) {
-            signWithBitrise(signingFileUrl, signingKeyStorePassword, signingKeyStoreAlias, signingKeyPassword)
-        } else {
-            android.buildTypes.release.signingConfig = null
-        }
+        android.buildTypes.release.signingConfig = null
     }
 }
 
