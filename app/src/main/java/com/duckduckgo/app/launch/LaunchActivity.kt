@@ -17,25 +17,16 @@
 package com.duckduckgo.app.launch
 
 import android.arch.lifecycle.Observer
-import android.arch.lifecycle.ViewModelProviders
-import android.content.Intent
 import android.os.Bundle
 import com.duckduckgo.app.browser.BrowserActivity
 import com.duckduckgo.app.browser.R
 import com.duckduckgo.app.global.DuckDuckGoActivity
-import com.duckduckgo.app.global.ViewModelFactory
 import com.duckduckgo.app.onboarding.ui.OnboardingActivity
-import javax.inject.Inject
 
 
 class LaunchActivity : DuckDuckGoActivity() {
 
-    @Inject
-    lateinit var viewModelFactory: ViewModelFactory
-
-    private val viewModel: LaunchViewModel by lazy {
-        ViewModelProviders.of(this, viewModelFactory).get(LaunchViewModel::class.java)
-    }
+    private val viewModel: LaunchViewModel by bindViewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,28 +42,22 @@ class LaunchActivity : DuckDuckGoActivity() {
 
     private fun processCommand(it: LaunchViewModel.Command?) {
         when (it) {
-            LaunchViewModel.Command.Onboarding -> showOnboarding()
-            is LaunchViewModel.Command.Home -> showHome()
+            LaunchViewModel.Command.Onboarding -> {
+                showHome(showOnboarding = true)
+            }
+            is LaunchViewModel.Command.Home -> {
+                showHome(showOnboarding = false)
+            }
         }
     }
 
-    private fun showOnboarding() {
-        startActivityForResult(OnboardingActivity.intent(this), ONBOARDING_REQUEST_CODE)
-    }
-
-    private fun showHome() {
+    private fun showHome(showOnboarding: Boolean) {
         startActivity(BrowserActivity.intent(this))
+
+        if (showOnboarding) {
+            startActivity(OnboardingActivity.intent(this))
+        }
+
         finish()
     }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (requestCode == ONBOARDING_REQUEST_CODE) {
-            viewModel.onOnboardingDone()
-        }
-    }
-
-    companion object {
-        private const val ONBOARDING_REQUEST_CODE = 100
-    }
-
 }

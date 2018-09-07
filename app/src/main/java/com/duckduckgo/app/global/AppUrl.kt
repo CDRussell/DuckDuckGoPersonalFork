@@ -16,8 +16,6 @@
 
 package com.duckduckgo.app.global
 
-import com.duckduckgo.app.browser.BuildConfig
-
 
 class AppUrl {
 
@@ -27,21 +25,18 @@ class AppUrl {
         const val HOME =  "https://$HOST"
         const val ABOUT = "https://$HOST/about"
         const val TOSDR = "https://tosdr.org"
+        const val PIXEL = "https://improving.duckduckgo.com"
     }
 
     object ParamKey {
         const val QUERY = "q"
         const val SOURCE = "t"
-        const val APP_VERSION = "tappv"
         const val ATB = "atb"
         const val RETENTION_ATB = "set_atb"
+        const val FORM_FACTOR = "f"
     }
 
     object ParamValue {
         const val SOURCE = "ddg_android"
-
-        val appVersion: String get() {
-            return String.format("android_%s", BuildConfig.VERSION_NAME)
-        }
     }
 }

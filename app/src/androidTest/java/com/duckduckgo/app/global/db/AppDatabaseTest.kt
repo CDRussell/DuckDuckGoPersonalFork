@@ -22,9 +22,11 @@ import android.arch.persistence.room.testing.MigrationTestHelper
 import android.support.test.InstrumentationRegistry
 import android.support.test.InstrumentationRegistry.getInstrumentation
 import com.duckduckgo.app.blockingObserve
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+
 
 class AppDatabaseTest {
 
@@ -48,14 +50,47 @@ class AppDatabaseTest {
         testHelper.createDatabase(TEST_DB_NAME, 2).use {
             it.execSQL("INSERT INTO `network_leaderboard` VALUES ('Network2', 'example.com')")
         }
-
         assertTrue(database().networkLeaderboardDao().trackerNetworkTally().blockingObserve()!!.isEmpty())
+    }
+
+    @Test
+    fun whenMigratingFromVersion3To4ThenValidationSucceeds() {
+        testHelper.createDatabase(TEST_DB_NAME, 3).close()
+        testHelper.runMigrationsAndValidate(TEST_DB_NAME, 4, true, AppDatabase.MIGRATION_3_TO_4)
+    }
+
+    @Test
+    fun whenMigratingFromVersion4To5ThenValidationSucceeds() {
+        testHelper.createDatabase(TEST_DB_NAME, 4).close()
+        testHelper.runMigrationsAndValidate(TEST_DB_NAME, 5, true, AppDatabase.MIGRATION_4_TO_5)
+    }
+
+    @Test
+    fun whenMigratingFromVersion4To5ThenUpdatePositionsOfStoredTabs() {
+
+        testHelper.createDatabase(TEST_DB_NAME, 4).use {
+            it.execSQL("INSERT INTO `tabs` values ('tabid1', 'url', 'title') ")
+            it.execSQL("INSERT INTO `tabs` values ('tabid2', 'url', 'title') ")
+        }
+
+        assertEquals(0, database().tabsDao().tabs()[0].position)
+        assertEquals(1, database().tabsDao().tabs()[1].position)
+    }
+
+    @Test
+    fun whenMigratingFromVersion4To5ThenTabsAreConsideredViewed() {
+
+        testHelper.createDatabase(TEST_DB_NAME, 4).use {
+            it.execSQL("INSERT INTO `tabs` values ('tabid1', 'url', 'title') ")
+        }
+
+        assertTrue(database().tabsDao().tabs()[0].viewed)
     }
 
     private fun database(): AppDatabase {
         val database = Room
                 .databaseBuilder(InstrumentationRegistry.getTargetContext(), AppDatabase::class.java, TEST_DB_NAME)
-                .addMigrations(AppDatabase.MIGRATION_1_TO_2, AppDatabase.MIGRATION_2_TO_3)
+                .addMigrations(AppDatabase.MIGRATION_1_TO_2, AppDatabase.MIGRATION_2_TO_3, AppDatabase.MIGRATION_3_TO_4, AppDatabase.MIGRATION_4_TO_5)
                 .allowMainThreadQueries()
                 .build()
 

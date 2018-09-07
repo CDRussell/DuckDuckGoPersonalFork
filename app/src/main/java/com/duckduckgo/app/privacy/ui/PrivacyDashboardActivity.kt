@@ -18,7 +18,6 @@ package com.duckduckgo.app.privacy.ui
 
 import android.app.Activity
 import android.arch.lifecycle.Observer
-import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -26,13 +25,14 @@ import android.support.v4.content.ContextCompat
 import android.view.View
 import com.duckduckgo.app.browser.R
 import com.duckduckgo.app.global.DuckDuckGoActivity
-import com.duckduckgo.app.global.ViewModelFactory
 import com.duckduckgo.app.global.model.Site
 import com.duckduckgo.app.global.view.hide
 import com.duckduckgo.app.global.view.html
 import com.duckduckgo.app.global.view.show
 import com.duckduckgo.app.privacy.renderer.*
 import com.duckduckgo.app.privacy.ui.PrivacyDashboardViewModel.ViewState
+import com.duckduckgo.app.statistics.pixels.Pixel
+import com.duckduckgo.app.statistics.pixels.Pixel.PixelName.*
 import com.duckduckgo.app.tabs.model.TabRepository
 import com.duckduckgo.app.tabs.tabId
 import kotlinx.android.synthetic.main.content_privacy_dashboard.*
@@ -42,14 +42,15 @@ import javax.inject.Inject
 
 class PrivacyDashboardActivity : DuckDuckGoActivity() {
 
-    @Inject lateinit var viewModelFactory: ViewModelFactory
-    @Inject lateinit var repository: TabRepository
+    @Inject
+    lateinit var repository: TabRepository
+    @Inject
+    lateinit var pixel: Pixel
+
     private val trackersRenderer = TrackersRenderer()
     private val upgradeRenderer = PrivacyUpgradeRenderer()
 
-    private val viewModel: PrivacyDashboardViewModel by lazy {
-        ViewModelProviders.of(this, viewModelFactory).get(PrivacyDashboardViewModel::class.java)
-    }
+    private val viewModel: PrivacyDashboardViewModel by bindViewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -132,15 +133,26 @@ class PrivacyDashboardActivity : DuckDuckGoActivity() {
     }
 
     fun onScorecardClicked() {
+        pixel.fire(PRIVACY_DASHBOARD_SCORECARD)
         startActivity(ScorecardActivity.intent(this, intent.tabId!!))
     }
 
+    fun onEncryptionClicked(@Suppress("UNUSED_PARAMETER") view: View) {
+        pixel.fire(PRIVACY_DASHBOARD_ENCRYPTION)
+    }
+
     fun onNetworksClicked(@Suppress("UNUSED_PARAMETER") view: View) {
+        pixel.fire(PRIVACY_DASHBOARD_NETWORKS)
         startActivity(TrackerNetworksActivity.intent(this, intent.tabId!!))
     }
 
     fun onPracticesClicked(@Suppress("UNUSED_PARAMETER") view: View) {
+        pixel.fire(PRIVACY_DASHBOARD_PRIVACY_PRACTICES)
         startActivity(PrivacyPracticesActivity.intent(this, intent.tabId!!))
+    }
+
+    fun onLeaderboardClick(@Suppress("UNUSED_PARAMETER") view: View) {
+        pixel.fire(PRIVACY_DASHBOARD_GLOBAL_STATS)
     }
 
     private fun updateActivityResult(shouldReload: Boolean) {

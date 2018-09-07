@@ -24,16 +24,27 @@
     <color name="warmerGray">#777777</color>
     <color name="subtleGray">#f0f0f0</color>
     <color name="subtleGrayTwo">#D8D8D8</color>
+    <color name="pinkishGrey">#CCCCCC</color>
 
     <color name="orange">#de5833</color>
     <color name="brickOrange">#d03a10</color>
 
     <color name="powderBlue">#50BFFF</color>
-    <color name="windowsBlue">#3c90c0</color>
+    <color name="powderBlue2">#B2D6F3</color>
+    <color name="denimBlue">#3d5599</color>
+    <color name="cornflowerBlue">#678FFF</color>
+    <color name="skyBlue">#42bffe</color>
 
-    <color name="lighOliveGreen">#93c04d</color>
+    <color name="lightOliveGreen">#93c04d</color>
     <color name="muddyGreen">#58732e</color>
     <color name="midGreen">#3fa140</color>
+    <color name="mediumGreen">#3b9c37</color>
+
+    <color name="eastBay">#4f3c76</color>
+    <color name="eastSide">#9680C5</color>
+    <color name="portGore">#2f1f51</color>
+
+    <color name="translucentDark">#B000</color>
 
     <color name="webViewScrollbarTrackColor">#FF333333</color>
     <color name="webViewScrollbarThumbColor">#FFABABAB</color>

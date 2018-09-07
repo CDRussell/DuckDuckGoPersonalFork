@@ -22,7 +22,8 @@
     android:layout_height="match_parent"
     android:paddingEnd="44dp"
     android:paddingStart="44dp"
-    tools:background="@color/powderBlue"
+    android:tag="onboardingNoTrace"
+    tools:background="@color/cornflowerBlue"
     tools:context="com.duckduckgo.app.onboarding.ui.OnboardingActivity">
 
     <ImageView
@@ -53,7 +54,6 @@
             style="@style/OnboardingTextTitle"
             android:text="@string/onboardingNoTraceTitle" />
 
-
         <TextView
             style="@style/OnboardingTextSubtitle"
             android:text="@string/onboardingNoTraceDescription1" />
@@ -68,7 +68,7 @@
     <Button
         android:id="@+id/continueButton"
         style="@style/OnboardingButtonNoTrace"
-        android:onClick="onDoneClicked"
+        android:onClick="onContinueClicked"
         android:theme="@style/OnboardingButtonNoTrace" />
 
 </android.support.constraint.ConstraintLayout>

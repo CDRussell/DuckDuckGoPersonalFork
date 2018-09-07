@@ -27,22 +27,29 @@ import com.duckduckgo.app.bookmarks.ui.SaveBookmarkDialogFragment.SaveBookmarkLi
 import com.duckduckgo.app.global.SingleLiveEvent
 import io.reactivex.schedulers.Schedulers
 
-class BookmarksViewModel(val dao: BookmarksDao): SaveBookmarkListener, ViewModel() {
+class BookmarksViewModel(private val dao: BookmarksDao) : SaveBookmarkListener, ViewModel(),
+    ImportBookmarksEnterKeyDialogFragment.Listener {
 
-    data class ViewState(val showBookmarks: Boolean = false,
-                         val bookmarks: List<BookmarkEntity> = emptyList())
+    data class ViewState(
+        val showBookmarks: Boolean = false,
+        val bookmarks: List<BookmarkEntity> = emptyList(),
+        val isDownloading: Boolean = false,
+        val isUploading: Boolean = false
+    )
 
     sealed class Command {
 
         class OpenBookmark(val bookmark: BookmarkEntity) : Command()
         class ConfirmDeleteBookmark(val bookmark: BookmarkEntity) : Command()
         class ShowEditBookmark(val bookmark: BookmarkEntity) : Command()
+        class SharedBookmarksKeyReceived(val key: String) : Command()
 
     }
 
     val viewState: MutableLiveData<ViewState> = MutableLiveData()
     val command: SingleLiveEvent<Command> = SingleLiveEvent()
 
+    private var lastSeenBookmarks: List<BookmarkEntity> = emptyList()
     private val bookmarks: LiveData<List<BookmarkEntity>> = dao.bookmarks()
     private val bookmarksObserver = Observer<List<BookmarkEntity>> { onBookmarksChanged(it!!) }
 
@@ -63,6 +70,7 @@ class BookmarksViewModel(val dao: BookmarksDao): SaveBookmarkListener, ViewModel
     }
 
     private fun onBookmarksChanged(bookmarks: List<BookmarkEntity>) {
+        lastSeenBookmarks = bookmarks
         viewState.value = viewState.value?.copy(showBookmarks = bookmarks.isNotEmpty(), bookmarks = bookmarks)
     }
 
@@ -76,6 +84,68 @@ class BookmarksViewModel(val dao: BookmarksDao): SaveBookmarkListener, ViewModel
 
     fun onEditBookmarkRequested(bookmark: BookmarkEntity) {
         command.value = ShowEditBookmark(bookmark)
+    }
+
+    fun exportBookmarks(bookmarks: List<BookmarkEntity>? = null) {
+
+//        viewState.value = viewState.value!!.copy(isUploading = true)
+//
+//        val task: Single<String> = Single.fromCallable({
+//            val bookmarksToShare = bookmarks ?: lastSeenBookmarks
+//            val requestBody = BookmarkSyncService.BookmarksSyncUploadRequest(bookmarksToShare)
+//            val response = bookmarkSyncService.uploadBookmarks(requestBody).execute()
+//            if (!response.isSuccessful) {
+//                throw IOException("Failed to upload bookmarks - ${response.errorBody()?.string()}")
+//            }
+//
+//            return@fromCallable response.headers().get("Location") ?: throw IOException("No location value returned")
+//
+//        })
+//
+//        task.subscribeOn(Schedulers.io())
+//            .observeOn(AndroidSchedulers.mainThread())
+//            .doAfterTerminate { viewState.value = viewState.value!!.copy(isUploading = false) }
+//            .subscribe({
+//                Timber.i("Successfully uploaded bookmarks - generated key of $it")
+//                command.value = SharedBookmarksKeyReceived(it)
+//            }, { throwable ->
+//                Timber.w(throwable, "Failed to upload bookmarks")
+//            })
+    }
+
+    override fun onBookmarkImportKeyEntered(key: String) {
+//        viewState.value = viewState.value!!.copy(isDownloading = true)
+//
+//        val trimmedKey = key.trim()
+//        Timber.i("Received bookmark import key $trimmedKey")
+//        val single: Single<BookmarkSyncService.BookmarkSyncResponse> = Single.fromCallable({
+//            val response = bookmarkSyncService.getBookmarks(trimmedKey).execute()
+//            if (!response.isSuccessful) {
+//                throw IOException("Failed to obtain bookmarks - ${response.errorBody()?.string()}")
+//            }
+//
+//            return@fromCallable response.body() ?: throw IOException("Response body was null")
+//        })
+//
+//
+//        single
+//            .subscribeOn(Schedulers.io())
+//            .observeOn(AndroidSchedulers.mainThread())
+//            .doAfterTerminate({
+//                viewState.value = viewState.value!!.copy(isDownloading = false)
+//            })
+//            .observeOn(Schedulers.io())
+//            .subscribe({
+//                Timber.i("Successfully retrieved ${it.bookmarks.size} bookmarks")
+//                it.bookmarks.forEach {
+//                    Timber.d("Inserting $it")
+//                    dao.insert(it)
+//                }
+//            }, { throwable ->
+//                Timber.w(throwable, "Failed to retrieve bookmarks")
+//
+//            })
+
     }
 
     fun delete(bookmark: BookmarkEntity) {

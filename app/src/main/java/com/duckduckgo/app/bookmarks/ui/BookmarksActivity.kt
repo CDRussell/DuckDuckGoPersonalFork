@@ -17,8 +17,8 @@
 package com.duckduckgo.app.bookmarks.ui
 
 import android.app.AlertDialog
+import android.app.ProgressDialog
 import android.arch.lifecycle.Observer
-import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -26,16 +26,13 @@ import android.os.Bundle
 import android.support.v7.widget.DividerItemDecoration
 import android.support.v7.widget.RecyclerView.*
 import android.text.Html
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.ImageView
 import android.widget.PopupMenu
 import com.duckduckgo.app.bookmarks.db.BookmarkEntity
 import com.duckduckgo.app.browser.BrowserActivity
 import com.duckduckgo.app.browser.R
 import com.duckduckgo.app.global.DuckDuckGoActivity
-import com.duckduckgo.app.global.ViewModelFactory
 import com.duckduckgo.app.global.baseHost
 import com.duckduckgo.app.global.faviconLocation
 import com.duckduckgo.app.global.image.GlideApp
@@ -45,26 +42,50 @@ import kotlinx.android.synthetic.main.content_bookmarks.*
 import kotlinx.android.synthetic.main.include_toolbar.*
 import kotlinx.android.synthetic.main.view_bookmark_entry.view.*
 import org.jetbrains.anko.alert
+import org.jetbrains.anko.indeterminateProgressDialog
+import org.jetbrains.anko.share
 import timber.log.Timber
-import javax.inject.Inject
 
-class BookmarksActivity : DuckDuckGoActivity() {
+class BookmarksActivity : DuckDuckGoActivity(), ImportBookmarksEnterKeyDialogFragment.Listener {
 
-    @Inject
-    lateinit var viewModelFactory: ViewModelFactory
+
     lateinit var adapter: BookmarksAdapter
     private var deleteDialog: AlertDialog? = null
+    private var importDialog: AlertDialog? = null
 
-    private val viewModel: BookmarksViewModel by lazy {
-        ViewModelProviders.of(this, viewModelFactory).get(BookmarksViewModel::class.java)
-    }
+    private lateinit var progress: ProgressDialog
+
+    private val viewModel: BookmarksViewModel by bindViewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_bookmarks)
+        progress = indeterminateProgressDialog(message = getString(R.string.please_wait))
         setupActionBar()
         setupBookmarksRecycler()
         observeViewModel()
+
+        consumeDeepLink()
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+
+        consumeDeepLink()
+    }
+
+    private fun consumeDeepLink() {
+        Timber.i("Checking if deep link exists")
+
+        val key = intent.getStringExtra(ARG_EXTRA_BOOKMARK_IMPORT_KEY)
+
+        if (key != null) {
+            importDialog = alert(getString(R.string.confirmImportBookmarks), getString(R.string.importBookmarks)) {
+                positiveButton(android.R.string.yes) { viewModel.onBookmarkImportKeyEntered(key) }
+                negativeButton(android.R.string.no) { }
+            }.build()
+            importDialog?.show()
+        }
     }
 
     private fun setupBookmarksRecycler() {
@@ -73,6 +94,41 @@ class BookmarksActivity : DuckDuckGoActivity() {
 
         val separator = DividerItemDecoration(this, VERTICAL)
         recycler.addItemDecoration(separator)
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.bookmarks_global_overflow_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.importBookmarks -> {
+                importBookmarks()
+                true
+            }
+            R.id.exportBookmarks -> {
+                exportBookmarks()
+                true
+            }
+            else -> false
+        }
+    }
+
+    private fun exportBookmarks() {
+        Timber.i("Will export bookmarks")
+        viewModel.exportBookmarks()
+    }
+
+    private fun importBookmarks() {
+        Timber.i("Will import bookmarks")
+        val importDialog = ImportBookmarksEnterKeyDialogFragment()
+        importDialog.listener = this
+        importDialog.show(supportFragmentManager, IMPORT_BOOKMARK_FRAGMENT_TAG)
+    }
+
+    override fun onBookmarkImportKeyEntered(key: String) {
+        viewModel.onBookmarkImportKeyEntered(key)
     }
 
     private fun setupActionBar() {
@@ -85,6 +141,22 @@ class BookmarksActivity : DuckDuckGoActivity() {
             viewState?.let {
                 if (it.showBookmarks) showBookmarks() else hideBookmarks()
                 adapter.bookmarks = it.bookmarks
+
+                with(progress) {
+                    if (!it.isUploading && !it.isDownloading) {
+                        hide()
+                    } else {
+                        show()
+                    }
+
+                    if (it.isDownloading) {
+                        setTitle(R.string.downloadingBookmarks)
+                    }
+
+                    if (it.isUploading) {
+                        setTitle(R.string.uploadingBookmarks)
+                    }
+                }
             }
         })
 
@@ -93,6 +165,7 @@ class BookmarksActivity : DuckDuckGoActivity() {
                 is BookmarksViewModel.Command.ConfirmDeleteBookmark -> confirmDeleteBookmark(it.bookmark)
                 is BookmarksViewModel.Command.OpenBookmark -> openBookmark(it.bookmark)
                 is BookmarksViewModel.Command.ShowEditBookmark -> showEditBookmarkDialog(it.bookmark)
+                is BookmarksViewModel.Command.SharedBookmarksKeyReceived -> share("https://ddgbookmark/${it.key}")
             }
         })
     }
@@ -136,20 +209,30 @@ class BookmarksActivity : DuckDuckGoActivity() {
 
     override fun onDestroy() {
         deleteDialog?.dismiss()
+        importDialog?.dismiss()
+        progress.dismiss()
         super.onDestroy()
     }
 
     companion object {
-        fun intent(context: Context): Intent {
-            return Intent(context, BookmarksActivity::class.java)
+        fun intent(context: Context, bookmarkKey: String? = null): Intent {
+            val i = Intent(context, BookmarksActivity::class.java)
+            i.putExtra(ARG_EXTRA_BOOKMARK_IMPORT_KEY, bookmarkKey)
+            return i
         }
 
         // Fragment Tags
         private const val EDIT_BOOKMARK_FRAGMENT_TAG = "EDIT_BOOKMARK"
+        private const val IMPORT_BOOKMARK_FRAGMENT_TAG = "IMPORT_BOOKMARK"
+
+        private const val ARG_EXTRA_BOOKMARK_IMPORT_KEY = "ARG_EXTRA_BOOKMARK_IMPORT_KEY"
+
     }
 
-    class BookmarksAdapter(private val context: Context,
-                           private val viewModel: BookmarksViewModel) : Adapter<BookmarksViewHolder>() {
+    class BookmarksAdapter(
+        private val context: Context,
+        private val viewModel: BookmarksViewModel
+    ) : Adapter<BookmarksViewHolder>() {
 
         var bookmarks: List<BookmarkEntity> = emptyList()
             set(value) {
@@ -172,7 +255,7 @@ class BookmarksActivity : DuckDuckGoActivity() {
         }
     }
 
-    class BookmarksViewHolder(itemView: View?, private val viewModel: BookmarksViewModel) :
+    class BookmarksViewHolder(itemView: View, private val viewModel: BookmarksViewModel) :
         ViewHolder(itemView) {
 
         lateinit var bookmark: BookmarkEntity
@@ -202,10 +285,10 @@ class BookmarksActivity : DuckDuckGoActivity() {
             val faviconUrl = Uri.parse(url).faviconLocation()
 
             GlideApp.with(itemView)
-                    .load(faviconUrl)
-                    .placeholder(R.drawable.ic_globe_white_16dp)
-                    .error(R.drawable.ic_globe_white_16dp)
-                    .into(itemView.favicon)
+                .load(faviconUrl)
+                .placeholder(R.drawable.ic_globe_white_16dp)
+                .error(R.drawable.ic_globe_white_16dp)
+                .into(itemView.favicon)
         }
 
         private fun parseDisplayUrl(urlString: String): String {
@@ -225,11 +308,18 @@ class BookmarksActivity : DuckDuckGoActivity() {
                     R.id.delete -> {
                         deleteBookmark(bookmark); true
                     }
+                    R.id.share -> {
+                        shareBookmark(bookmark); true
+                    }
                     else -> false
 
                 }
             }
             popup.show()
+        }
+
+        private fun shareBookmark(bookmark: BookmarkEntity) {
+            viewModel.exportBookmarks(listOf(bookmark))
         }
 
 

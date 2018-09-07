@@ -17,7 +17,6 @@
 package com.duckduckgo.app.tabs.ui
 
 import android.arch.lifecycle.Observer
-import android.arch.lifecycle.ViewModelProviders
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -26,8 +25,10 @@ import android.view.Menu
 import android.view.MenuItem
 import com.duckduckgo.app.browser.R
 import com.duckduckgo.app.global.DuckDuckGoActivity
-import com.duckduckgo.app.global.ViewModelFactory
+import com.duckduckgo.app.global.view.ClearPersonalDataAction
 import com.duckduckgo.app.global.view.FireDialog
+import com.duckduckgo.app.settings.SettingsActivity
+import com.duckduckgo.app.statistics.pixels.Pixel
 import com.duckduckgo.app.tabs.model.TabEntity
 import com.duckduckgo.app.tabs.ui.TabSwitcherViewModel.Command
 import com.duckduckgo.app.tabs.ui.TabSwitcherViewModel.Command.Close
@@ -40,11 +41,13 @@ import javax.inject.Inject
 class TabSwitcherActivity : DuckDuckGoActivity(), TabSwitcherAdapter.TabSwitchedListener {
 
     @Inject
-    lateinit var viewModelFactory: ViewModelFactory
+    lateinit var clearPersonalDataAction: ClearPersonalDataAction
 
-    private val viewModel: TabSwitcherViewModel by lazy {
-        ViewModelProviders.of(this, viewModelFactory).get(TabSwitcherViewModel::class.java)
-    }
+    @Inject
+    lateinit var pixel: Pixel
+
+    private val viewModel: TabSwitcherViewModel by bindViewModel()
+    
     private val tabsAdapter = TabSwitcherAdapter(this, this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,15 +70,18 @@ class TabSwitcherActivity : DuckDuckGoActivity(), TabSwitcherAdapter.TabSwitched
 
     private fun configureObservers() {
         viewModel.tabs.observe(this, Observer<List<TabEntity>> {
-            render(it!!)
+            render()
+        })
+        viewModel.selectedTab.observe(this, Observer<TabEntity> {
+            render()
         })
         viewModel.command.observe(this, Observer {
             processCommand(it)
         })
     }
 
-    private fun render(tabs: List<TabEntity>) {
-        tabsAdapter.updateData(tabs)
+    private fun render() {
+        tabsAdapter.updateData(viewModel.tabs.value, viewModel.selectedTab.value)
     }
 
     private fun processCommand(command: Command?) {
@@ -93,16 +99,18 @@ class TabSwitcherActivity : DuckDuckGoActivity(), TabSwitcherAdapter.TabSwitched
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.fire -> onFire()
-            R.id.newTab -> onNewTabRequested()
+            R.id.newTab, R.id.newTabOverflow -> onNewTabRequested()
+            R.id.closeAllTabs -> closeAllTabs()
+            R.id.settings -> showSettings()
         }
         return super.onOptionsItemSelected(item)
     }
 
     private fun onFire() {
-        FireDialog(context = this,
-            clearStarted = { viewModel.onClearRequested() },
-            clearComplete = { viewModel.onClearComplete() }
-        ).show()
+        val dialog = FireDialog(context = this, pixel = pixel, clearPersonalDataAction = clearPersonalDataAction)
+        dialog.clearStarted = { viewModel.onClearRequested() }
+        dialog.clearComplete = { viewModel.onClearComplete() }
+        dialog.show()
     }
 
     override fun onNewTabRequested() {
@@ -115,6 +123,16 @@ class TabSwitcherActivity : DuckDuckGoActivity(), TabSwitcherAdapter.TabSwitched
 
     override fun onTabDeleted(tab: TabEntity) {
         viewModel.onTabDeleted(tab)
+    }
+
+    private fun closeAllTabs() {
+        viewModel.tabs.value?.forEach {
+            viewModel.onTabDeleted(it)
+        }
+    }
+
+    private fun showSettings() {
+        startActivity(SettingsActivity.intent(this))
     }
 
     override fun finish() {

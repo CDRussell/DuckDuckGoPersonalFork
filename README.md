@@ -2,10 +2,12 @@
 
 Welcome to our android application. We are excited to engage the community in development, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## We are hiring!
+Are you a talented cross-platform mobile developer? We are looking for a Senior Cross-Platform or iOS Engineer to help shape our mobile apps. We embrace diverse perspectives, and seek out passionate, self-motivated people, committed to our shared vision of raising the standard of trust online. Visit our [careers](https://duckduckgo.com/hiring/#open) page to find out more!
 
 ## Discuss
 
-Contact us at android@duckduckgo.com if you have questions, feedback or want to chat.
+Contact us at https://duckduckgo.com/feedback if you have feedback, questions or want to chat.
 
 ## Reporting Bugs
 
@@ -16,9 +18,6 @@ We want our app to be as stable as possible thus your bug reports are immensely 
 * Steps to reproduce the bug
 * Expected behavior
 * Actual behavior
-
-Email bug reports to android@duckduckgo.com
-
 
 ## License
 DuckDuckGo android is distributed under the Apache 2.0 [license](LICENSE).

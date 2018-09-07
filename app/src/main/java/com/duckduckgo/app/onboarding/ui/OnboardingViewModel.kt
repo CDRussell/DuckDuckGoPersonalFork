@@ -17,11 +17,36 @@
 package com.duckduckgo.app.onboarding.ui
 
 import android.arch.lifecycle.ViewModel
+import com.duckduckgo.app.browser.defaultBrowsing.DefaultBrowserDetector
 import com.duckduckgo.app.onboarding.store.OnboardingStore
 
-class OnboardingViewModel(private val onboardingStore: OnboardingStore) : ViewModel() {
+class OnboardingViewModel(
+    private val onboardingStore: OnboardingStore,
+    private val defaultWebBrowserCapability: DefaultBrowserDetector
+) : ViewModel() {
+
+    fun pageCount(): Int {
+        return if (shouldShowDefaultBrowserPage()) 3 else 2
+    }
 
     fun onOnboardingDone() {
         onboardingStore.onboardingShown()
+    }
+
+    fun getItem(position: Int): OnboardingPageFragment? {
+        return when (position) {
+            0 -> OnboardingPageFragment.ProtectDataPage()
+            1 -> OnboardingPageFragment.NoTracePage()
+            2 -> {
+                return if (shouldShowDefaultBrowserPage()) {
+                    OnboardingPageFragment.DefaultBrowserPage()
+                } else null
+            }
+            else -> null
+        }
+    }
+
+    private fun shouldShowDefaultBrowserPage(): Boolean {
+        return defaultWebBrowserCapability.deviceSupportsDefaultBrowserConfiguration()
     }
 }

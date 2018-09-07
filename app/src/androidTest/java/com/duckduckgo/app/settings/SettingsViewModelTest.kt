@@ -19,20 +19,19 @@ package com.duckduckgo.app.settings
 import android.arch.core.executor.testing.InstantTaskExecutorRule
 import android.arch.lifecycle.Observer
 import android.content.Context
-import android.net.MailTo
 import android.support.test.InstrumentationRegistry
 import com.duckduckgo.app.blockingObserve
 import com.duckduckgo.app.browser.BuildConfig
-import com.duckduckgo.app.browser.R
-import com.duckduckgo.app.global.AndroidStringResolver
-import com.duckduckgo.app.global.StringResolver
+import com.duckduckgo.app.browser.defaultBrowsing.DefaultBrowserDetector
 import com.duckduckgo.app.settings.SettingsViewModel.Command
 import com.duckduckgo.app.settings.db.SettingsDataStore
+import com.duckduckgo.app.statistics.Variant
+import com.duckduckgo.app.statistics.VariantManager
 import com.nhaarman.mockito_kotlin.KArgumentCaptor
 import com.nhaarman.mockito_kotlin.argumentCaptor
 import com.nhaarman.mockito_kotlin.verify
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
+import com.nhaarman.mockito_kotlin.whenever
+import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -47,8 +46,6 @@ class SettingsViewModelTest {
 
     private lateinit var testee: SettingsViewModel
 
-    private lateinit var stringResolver: StringResolver
-
     private lateinit var context: Context
 
     @Mock
@@ -57,6 +54,12 @@ class SettingsViewModelTest {
     @Mock
     private lateinit var mockAppSettingsDataStore: SettingsDataStore
 
+    @Mock
+    private lateinit var mockDefaultBrowserDetector: DefaultBrowserDetector
+
+    @Mock
+    private lateinit var mockVariantManager: VariantManager
+
     private lateinit var commandCaptor: KArgumentCaptor<Command>
 
     @Before
@@ -64,57 +67,95 @@ class SettingsViewModelTest {
         MockitoAnnotations.initMocks(this)
 
         context = InstrumentationRegistry.getTargetContext()
-
-        stringResolver = AndroidStringResolver(context)
         commandCaptor = argumentCaptor()
 
-
-        testee = SettingsViewModel(stringResolver, mockAppSettingsDataStore)
+        testee = SettingsViewModel(mockAppSettingsDataStore, mockDefaultBrowserDetector, mockVariantManager)
         testee.command.observeForever(commandObserver)
+
+        whenever(mockVariantManager.getVariant()).thenReturn(VariantManager.DEFAULT_VARIANT)
     }
 
     @Test
     fun whenStartNotCalledYetThenViewStateInitialisedDefaultValues() {
         assertNotNull(testee.viewState)
 
-        val value = testee.viewState.value!!
-        assertEquals(true, value.loading)
+        val value = latestViewState()
+        assertTrue(value.loading)
         assertEquals("", value.version)
+        assertTrue(value.autoCompleteSuggestionsEnabled)
+        assertFalse(value.showDefaultBrowserSetting)
+        assertFalse(value.isAppDefaultBrowser)
     }
 
     @Test
     fun whenStartCalledThenLoadingSetToFalse() {
         testee.start()
-        val value = testee.viewState.value!!
+        val value = latestViewState()
         assertEquals(false, value.loading)
     }
 
     @Test
     fun whenStartCalledThenVersionSetCorrectly() {
         testee.start()
-        val value = testee.viewState.value!!
-        assertEquals("${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", value.version)
+        val value = latestViewState()
+        val expectedStartString = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
+        assertTrue(value.version.startsWith(expectedStartString))
     }
 
     @Test
-    fun whenLeaveFeedBackRequestedThenUriContainsCorrectEmail() {
+    fun whenLeaveFeedBackRequestedThenCommandIsLaunchFeedback() {
         testee.userRequestedToSendFeedback()
-        val uri = retrieveObservedUri()
-        assertEquals("android@duckduckgo.com", uri.to)
-    }
-
-    @Test
-    fun whenLeaveFeedBackRequestedThenUriContainsCorrectSubject() {
-        testee.userRequestedToSendFeedback()
-        val uri = retrieveObservedUri()
-        assertEquals(context.getString(R.string.feedbackSubject), uri.subject)
-    }
-
-    private fun retrieveObservedUri(): MailTo {
         testee.command.blockingObserve()
         verify(commandObserver).onChanged(commandCaptor.capture())
-
-        val capturedCommand = commandCaptor.firstValue as Command.SendEmail
-        return MailTo.parse(capturedCommand.emailUri.toString())
+        assertEquals(Command.LaunchFeedback, commandCaptor.firstValue)
     }
+
+    @Test
+    fun whenDefaultBrowserAppAlreadySetToOursThenIsDefaultBrowserFlagIsTrue() {
+        whenever(mockDefaultBrowserDetector.isCurrentlyConfiguredAsDefaultBrowser()).thenReturn(true)
+        testee.start()
+        val viewState = latestViewState()
+        assertTrue(viewState.isAppDefaultBrowser)
+    }
+
+
+    @Test
+    fun whenDefaultBrowserAppNotSetToOursThenIsDefaultBrowserFlagIsFalse() {
+        whenever(mockDefaultBrowserDetector.isCurrentlyConfiguredAsDefaultBrowser()).thenReturn(false)
+        testee.start()
+        val viewState = latestViewState()
+        assertFalse(viewState.isAppDefaultBrowser)
+    }
+
+    @Test
+    fun whenBrowserDetectorIndicatesDefaultCannotBeSetThenFlagToShowSettingIsFalse() {
+        whenever(mockDefaultBrowserDetector.deviceSupportsDefaultBrowserConfiguration()).thenReturn(false)
+        testee.start()
+        assertFalse(latestViewState().showDefaultBrowserSetting)
+    }
+
+    @Test
+    fun whenBrowserDetectorIndicatesDefaultCanBeSetThenFlagToShowSettingIsTrue() {
+        whenever(mockDefaultBrowserDetector.deviceSupportsDefaultBrowserConfiguration()).thenReturn(true)
+        testee.start()
+        assertTrue(latestViewState().showDefaultBrowserSetting)
+    }
+
+    @Test
+    fun whenVariantIsEmptyThenEmptyVariantIncludedInSettings() {
+        testee.start()
+        val expectedStartString = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
+        assertEquals(expectedStartString, latestViewState().version)
+    }
+
+    @Test
+    fun whenVariantIsSetThenVariantKeyIncludedInSettings() {
+        whenever(mockVariantManager.getVariant()).thenReturn(Variant("ab"))
+        testee.start()
+        val expectedStartString = "${BuildConfig.VERSION_NAME} ab (${BuildConfig.VERSION_CODE})"
+        assertEquals(expectedStartString, latestViewState().version)
+    }
+
+
+    private fun latestViewState() = testee.viewState.value!!
 }
