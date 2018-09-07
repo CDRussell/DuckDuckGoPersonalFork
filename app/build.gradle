@@ -58,36 +58,43 @@ android {
         }
     }
 
+    configureSigningConfig()
+}
+
+private void configureSigningConfig() {
     def staticConfigPath = "${System.getenv('HOME')}/jenkins_static/com.duckduckgo.mobile.android"
     def propertiesPath = "${staticConfigPath}/ddg_android_build.properties"
     def propertiesFile = new File(propertiesPath)
     if (propertiesFile.exists()) {
-        println "Signing properties found"
-        def props = new Properties()
-        props.load(new FileInputStream(propertiesFile))
-        android.signingConfigs.release.storeFile = file("${staticConfigPath}/${props['key.store']}")
-        android.signingConfigs.release.storePassword = props['key.store.password']
-        android.signingConfigs.release.keyAlias = props['key.alias']
-        android.signingConfigs.release.keyPassword = props['key.alias.password']
+        signWithJenkins(propertiesFile, staticConfigPath)
     } else {
-        println "Signing properties not found at ${propertiesPath}; checking if provided by environment variables"
-
         def signingFileUrl = System.getenv("BITRISEIO_ANDROID_KEYSTORE_URL")
         def signingKeyStorePassword = System.getenv("BITRISEIO_ANDROID_KEYSTORE_PASSWORD")
         def signingKeyStoreAlias = System.getenv("BITRISEIO_ANDROID_KEYSTORE_ALIAS")
         def signingKeyPassword = System.getenv("BITRISEIO_ANDROID_KEYSTORE_PRIVATE_KEY_PASSWORD")
 
         if (signingFileUrl != null && signingKeyStoreAlias != null && signingKeyStorePassword != null && signingKeyPassword != null) {
-            println("it has it")
-            android.signingConfigs.release.storeFile = signingFileUrl
-            android.signingConfigs.release.storePassword = signingKeyStorePassword
-            android.signingConfigs.release.keyAlias = signingKeyStoreAlias
-            android.signingConfigs.release.keyPassword = signingKeyPassword
+            signWithBitrise(signingFileUrl, signingKeyStorePassword, signingKeyStoreAlias, signingKeyPassword)
         } else {
-            println("nope!")
             android.buildTypes.release.signingConfig = null
         }
     }
+}
+
+private void signWithBitrise(String signingFileUrl, String signingKeyStorePassword, String signingKeyStoreAlias, String signingKeyPassword) {
+    android.signingConfigs.release.storeFile = file(signingFileUrl)
+    android.signingConfigs.release.storePassword = signingKeyStorePassword
+    android.signingConfigs.release.keyAlias = signingKeyStoreAlias
+    android.signingConfigs.release.keyPassword = signingKeyPassword
+}
+
+private void signWithJenkins(File propertiesFile, staticConfigPath) {
+    def props = new Properties()
+    props.load(new FileInputStream(propertiesFile))
+    android.signingConfigs.release.storeFile = file("${staticConfigPath}/${props['key.store']}")
+    android.signingConfigs.release.storePassword = props['key.store.password']
+    android.signingConfigs.release.keyAlias = props['key.alias']
+    android.signingConfigs.release.keyPassword = props['key.alias.password']
 }
 
 ext {

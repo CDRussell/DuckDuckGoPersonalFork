@@ -56,8 +56,6 @@ workflows:
         - project_location: "$PROJECT_LOCATION"
         - module: "$MODULE"
         - variant: release
-    - sign-apk@1.2.3:
-        run_if: '{{getenv "BITRISEIO_ANDROID_KEYSTORE_URL" | ne ""}}'
     - fastlane@2.3.12:
         inputs:
         - update_fastlane: 'false'
