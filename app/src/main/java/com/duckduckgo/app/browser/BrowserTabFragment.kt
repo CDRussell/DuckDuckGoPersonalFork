@@ -46,6 +46,7 @@ import android.widget.TextView
 import androidx.annotation.AnyThread
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.content.ContextCompat
 import androidx.core.content.pm.ShortcutManagerCompat
@@ -207,6 +208,7 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setHasOptionsMenu(true)
         renderer = BrowserTabFragmentRenderer()
     }
 
@@ -216,6 +218,9 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
+        val activity = requireActivity() as AppCompatActivity
+        activity.setSupportActionBar(bottomAppBar)
+
         createPopupMenu()
         configureObservers()
         configureAppBar()
@@ -230,6 +235,10 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
         if (savedInstanceState == null) {
             viewModel.onViewReady()
         }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        inflater.inflate(R.menu.bottom_nav_menu, menu)
     }
 
     private fun configureShowTabSwitcherListener() {
@@ -565,6 +574,42 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
                 privacyGradeButton?.isEnabled = privacyGrade != PrivacyGrade.UNKNOWN
             }
         })
+
+        bottomAppBar.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+//                R.id.bottomBarSearch -> {
+//                    appBarLayout.setExpanded(true, true)
+//                    omnibarTextInput.requestFocus()
+//                    true
+//                }
+                R.id.bottomBarAddBookmark -> {
+                    browserActivity?.launchBookmarks()
+                    true
+                }
+                R.id.bottomBarRefresh -> {
+                    refresh()
+                    true
+                }
+                R.id.bottomBarBackNavigation -> {
+                    activity?.onBackPressed()
+                    true
+                }
+                R.id.bottomBarForwardNavigation -> {
+                    viewModel.onUserPressedForward()
+                    true
+                }
+                R.id.bottomBarSharePage -> {
+                    viewModel.userSharingLink(webView?.url)
+                    true
+                }
+                else -> false
+            }
+        }
+
+        fab.setOnClickListener {
+            appBarLayout.setExpanded(true, true)
+            omnibarTextInput.requestFocus()
+        }
     }
 
     private fun configureFindInPage() {
@@ -1067,6 +1112,12 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
                     it.isEnabled = viewState.addToHomeEnabled
                 }
             }
+
+            bottomAppBar.findViewById<View>(R.id.bottomBarBackNavigation)?.isEnabled = viewState.canGoBack
+            bottomAppBar.findViewById<View>(R.id.bottomBarForwardNavigation)?.isEnabled = viewState.canGoForward
+            bottomAppBar.findViewById<View>(R.id.bottomBarRefresh)?.isEnabled = browserShowing
+            bottomAppBar.findViewById<View>(R.id.bottomBarAddBookmark)?.isEnabled = viewState.canAddBookmarks
+            bottomAppBar.findViewById<View>(R.id.bottomBarSharePage)?.isEnabled = viewState.canSharePage
         }
 
         private fun renderToolbarMenus(viewState: BrowserViewState) {
