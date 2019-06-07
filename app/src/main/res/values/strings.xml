@@ -295,7 +295,7 @@
     <string name="authenticationDialogNegativeButton">Cancel</string>
     <string name="authenticationDialogUsernameHint">Username</string>
     <string name="authenticationDialogPasswordHint">Password</string>
-    <string name="title_activity_offline_pages">OfflinePagesActivity</string>
+    <string name="title_activity_offline_pages">Offline Pages</string>
 
 
 </resources>
