@@ -24,6 +24,7 @@
         android:id="@+id/header"
         android:layout_width="0dp"
         android:layout_height="50dp"
+        app:layout_constraintTop_toTopOf="parent"
         android:background="@color/white"
         android:gravity="center"
         android:orientation="horizontal"
@@ -120,6 +121,11 @@
                 android:paddingStart="30dp"
                 android:paddingEnd="0dp"
                 android:text="@string/requestDesktopSiteMenuTitle" />
+
+            <TextView
+                android:id="@+id/offlinePagesMenuItem"
+                style="@style/BrowserTextMenuItem"
+                android:text="Offline Pages" />
 
             <TextView
                 android:id="@+id/brokenSitePopupMenuItem"

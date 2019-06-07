@@ -57,6 +57,9 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.duckduckgo.app.OfflinePageDao
+import com.duckduckgo.app.OfflinePageEntity
+import com.duckduckgo.app.OfflinePagesActivity
 import com.duckduckgo.app.bookmarks.ui.SaveBookmarkDialogFragment
 import com.duckduckgo.app.browser.BrowserTabViewModel.*
 import com.duckduckgo.app.browser.autocomplete.BrowserAutoCompleteSuggestionsAdapter
@@ -101,6 +104,7 @@ import org.jetbrains.anko.longToast
 import org.jetbrains.anko.share
 import timber.log.Timber
 import java.io.File
+import java.util.*
 import javax.inject.Inject
 import kotlin.concurrent.thread
 import kotlin.coroutines.CoroutineContext
@@ -143,6 +147,9 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
 
     @Inject
     lateinit var ctaViewModel: CtaViewModel
+
+    @Inject
+    lateinit var offlinePageDao: OfflinePageDao
 
     @Inject
     lateinit var omnibarScrolling: OmnibarScrolling
@@ -265,6 +272,9 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
                 )
             }
             onMenuItemClicked(view.sharePageMenuItem) { viewModel.userSharingLink(webView?.url) }
+            onMenuItemClicked(view.offlinePagesMenuItem) {
+                startActivityForResult(OfflinePagesActivity.intent(requireActivity()), 1234)
+            }
             onMenuItemClicked(view.addToHome) {
                 context?.let {
                     val url = webView?.url ?: return@let
@@ -429,6 +439,9 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
             is Command.LaunchAddWidget -> launchAddWidget()
             is Command.LaunchLegacyAddWidget -> launchLegacyAddWidget()
             is Command.RequiresAuthentication -> showAuthenticationDialog(it.request)
+            is Command.LoadOfflinePage -> {
+                webView?.loadDataWithBaseURL(it.url, it.bytes, "multipart/related", Charsets.UTF_8.name(), null)
+            }
             is Command.SaveCredentials -> saveBasicAuthCredentials(it.request, it.credentials)
         }
     }
@@ -484,7 +497,20 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == REQUEST_CODE_CHOOSE_FILE) {
             handleFileUploadResult(resultCode, data)
+        } else if (requestCode == 1234) {
+            handleOfflinePageLoad(data)
         }
+    }
+
+    private fun handleOfflinePageLoad(data: Intent?) {
+        if (data == null) {
+            return
+        }
+
+        val id = data.getIntExtra("offlinePageId", -1)
+        if (id == -1) return
+
+        viewModel.userRequestedOfflinePageLoad(id)
     }
 
     private fun handleFileUploadResult(resultCode: Int, intent: Intent?) {
@@ -541,7 +567,25 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
         toolbar.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.fire -> {
-                    browserActivity?.launchFire()
+                    //browserActivity?.launchFire()
+
+                    activity?.let {
+                        val storageLocation = it.filesDir
+                        val url = webView?.url ?: return@let
+                        val filename = UUID.randomUUID().toString()
+                        Timber.i("Url was $url, filename is $filename")
+                        val fullPath = "${storageLocation.absolutePath}/$filename"
+                        webView?.saveWebArchive(fullPath, false) { value ->
+                            if (value == null) {
+                                Timber.w("Probably failed to save web page")
+                            } else {
+                                Timber.i("Saved web page as $value")
+                                val offlinePage = OfflinePageEntity(title = webView?.title, url = url, filePath = value)
+                                thread { offlinePageDao.insert(offlinePage) }
+                            }
+                        }
+                    }
+
                     return@setOnMenuItemClickListener true
                 }
                 else -> return@setOnMenuItemClickListener false
@@ -637,6 +681,8 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
                 domStorageEnabled = true
                 loadWithOverviewMode = true
                 useWideViewPort = true
+                allowFileAccessFromFileURLs = true
+                allowUniversalAccessFromFileURLs = true
                 builtInZoomControls = true
                 displayZoomControls = false
                 mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE

@@ -30,6 +30,7 @@ import androidx.annotation.StringRes
 import androidx.annotation.VisibleForTesting
 import androidx.core.net.toUri
 import androidx.lifecycle.*
+import com.duckduckgo.app.OfflinePageDao
 import com.duckduckgo.app.autocomplete.api.AutoCompleteApi
 import com.duckduckgo.app.autocomplete.api.AutoCompleteApi.AutoCompleteResult
 import com.duckduckgo.app.bookmarks.db.BookmarkEntity
@@ -71,7 +72,9 @@ import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.io.File
 import java.util.concurrent.TimeUnit
 
 class BrowserTabViewModel(
@@ -91,6 +94,7 @@ class BrowserTabViewModel(
     private val addToHomeCapabilityDetector: AddToHomeCapabilityDetector,
     private val ctaViewModel: CtaViewModel,
     private val searchCountDao: SearchCountDao,
+    private val offlinePageDao: OfflinePageDao,
     appConfigurationDao: AppConfigurationDao
 ) : WebViewClientListener, SaveBookmarkListener, HttpAuthenticationListener, ViewModel() {
 
@@ -170,6 +174,8 @@ class BrowserTabViewModel(
         object LaunchLegacyAddWidget : Command()
         class RequiresAuthentication(val request: BasicAuthenticationRequest) : Command()
         class SaveCredentials(val request: BasicAuthenticationRequest, val credentials: BasicAuthenticationCredentials) : Command()
+        class LoadOfflinePage(val url: String, val bytes: String) : Command()
+
     }
 
     val autoCompleteViewState: MutableLiveData<AutoCompleteViewState> = MutableLiveData()
@@ -789,6 +795,19 @@ class BrowserTabViewModel(
 
     override fun cancelAuthentication(request: BasicAuthenticationRequest) {
         request.handler.cancel()
+    }
+
+    fun userRequestedOfflinePageLoad(id: Int) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                val offlinePage = offlinePageDao.getOfflinePage(id) ?: return@withContext
+
+                val file = File(offlinePage.filePath)
+                val bytes = file.readText()
+
+                command.postValue(LoadOfflinePage(offlinePage.url, bytes))
+            }
+        }
     }
 }
 

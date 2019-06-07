@@ -32,5 +32,6 @@
 
     <dimen name="settingsItemHorizontalPadding">20dp</dimen>
     <dimen name="onboardingTitleMarginTop">20dp</dimen>
+    <dimen name="fab_margin">16dp</dimen>
 
 </resources>

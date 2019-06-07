@@ -16,6 +16,7 @@
 
 package com.duckduckgo.app.di
 
+import com.duckduckgo.app.OfflinePagesActivity
 import com.duckduckgo.app.about.AboutDuckDuckGoActivity
 import com.duckduckgo.app.bookmarks.ui.BookmarksActivity
 import com.duckduckgo.app.brokensite.BrokenSiteActivity
@@ -119,6 +120,10 @@ abstract class AndroidBindingModule {
     @ActivityScoped
     @ContributesAndroidInjector
     abstract fun aboutDuckDuckGoActivity(): AboutDuckDuckGoActivity
+
+    @ActivityScoped
+    @ContributesAndroidInjector
+    abstract fun offlinePagesActivity(): OfflinePagesActivity
 
     /* Fragments */
 

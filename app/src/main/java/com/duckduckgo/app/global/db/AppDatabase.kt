@@ -21,6 +21,8 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.duckduckgo.app.OfflinePageDao
+import com.duckduckgo.app.OfflinePageEntity
 import com.duckduckgo.app.bookmarks.db.BookmarkEntity
 import com.duckduckgo.app.bookmarks.db.BookmarksDao
 import com.duckduckgo.app.browser.rating.db.AppEnjoymentDao
@@ -55,7 +57,7 @@ import com.duckduckgo.app.usage.search.SearchCountDao
 import com.duckduckgo.app.usage.search.SearchCountEntity
 
 @Database(
-    exportSchema = true, version = 12, entities = [
+    exportSchema = true, version = 13, entities = [
         DisconnectTracker::class,
         HttpsBloomFilterSpec::class,
         HttpsWhitelistedDomain::class,
@@ -72,7 +74,8 @@ import com.duckduckgo.app.usage.search.SearchCountEntity
         AppDaysUsedEntity::class,
         AppEnjoymentEntity::class,
         Notification::class,
-        PrivacyProtectionCountsEntity::class
+        PrivacyProtectionCountsEntity::class,
+        OfflinePageEntity::class
     ]
 )
 
@@ -99,6 +102,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun appEnjoymentDao(): AppEnjoymentDao
     abstract fun notificationDao(): NotificationDao
     abstract fun privacyProtectionCountsDao(): PrivacyProtectionCountDao
+    abstract fun offlinePagesDao(): OfflinePageDao
 
     companion object {
         val MIGRATION_1_TO_2: Migration = object : Migration(1, 2) {
@@ -188,6 +192,12 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_12_TO_13: Migration = object : Migration(12, 13) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("CREATE TABLE IF NOT EXISTS `offlinePages` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT, `url` TEXT NOT NULL, `filePath` TEXT NOT NULL)")
+            }
+        }
+
         val ALL_MIGRATIONS: List<Migration>
             get() = listOf(
                 MIGRATION_1_TO_2,
@@ -200,7 +210,8 @@ abstract class AppDatabase : RoomDatabase() {
                 MIGRATION_8_TO_9,
                 MIGRATION_9_TO_10,
                 MIGRATION_10_TO_11,
-                MIGRATION_11_TO_12
+                MIGRATION_11_TO_12,
+                MIGRATION_12_TO_13
             )
     }
 }

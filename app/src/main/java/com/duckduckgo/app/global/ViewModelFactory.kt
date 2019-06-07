@@ -18,6 +18,8 @@ package com.duckduckgo.app.global
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.duckduckgo.app.OfflinePageDao
+import com.duckduckgo.app.OfflinePageViewModel
 import com.duckduckgo.app.autocomplete.api.AutoCompleteApi
 import com.duckduckgo.app.bookmarks.db.BookmarksDao
 import com.duckduckgo.app.bookmarks.ui.BookmarksViewModel
@@ -102,6 +104,7 @@ class ViewModelFactory @Inject constructor(
     private val appEnjoymentUserEventRecorder: AppEnjoymentUserEventRecorder,
     private val playStoreUtils: PlayStoreUtils,
     private val feedbackSubmitter: FeedbackSubmitter,
+    private val offlinePagesDao: OfflinePageDao,
     private val onboardingPageManager: OnboardingPageManager
 ) : ViewModelProvider.NewInstanceFactory() {
 
@@ -127,6 +130,7 @@ class ViewModelFactory @Inject constructor(
                 isAssignableFrom(PositiveFeedbackLandingViewModel::class.java) -> PositiveFeedbackLandingViewModel()
                 isAssignableFrom(ShareOpenEndedNegativeFeedbackViewModel::class.java) -> ShareOpenEndedNegativeFeedbackViewModel()
                 isAssignableFrom(BrokenSiteNegativeFeedbackViewModel::class.java) -> BrokenSiteNegativeFeedbackViewModel()
+                isAssignableFrom(OfflinePageViewModel::class.java) -> OfflinePageViewModel(offlinePagesDao)
                 isAssignableFrom(TrackerBlockingSelectionViewModel::class.java) -> TrackerBlockingSelectionViewModel(privacySettingsStore)
 
                 else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
@@ -179,6 +183,7 @@ class ViewModelFactory @Inject constructor(
         faviconDownloader = faviconDownloader,
         addToHomeCapabilityDetector = addToHomeCapabilityDetector,
         ctaViewModel = ctaViewModel,
+        offlinePageDao = offlinePagesDao,
         searchCountDao = searchCountDao
     )
 }
