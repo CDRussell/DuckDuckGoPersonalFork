@@ -38,12 +38,12 @@
         android:layout_height="0dp"
         android:layout_marginStart="16dp"
         android:ellipsize="end"
-        android:includeFontPadding="false"
         android:fontFamily="sans-serif"
         android:gravity="center_vertical|start"
+        android:includeFontPadding="false"
         android:maxLines="1"
         android:textAlignment="textStart"
-        android:textColor="?attr/autoCompleteTextColor"
+        android:textColor="@color/white"
         android:textSize="16sp"
         app:layout_constraintBottom_toBottomOf="@id/phraseOrUrlIndicator"
         app:layout_constraintEnd_toStartOf="@id/editQueryImage"
@@ -61,6 +61,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent">
+
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"

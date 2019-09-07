@@ -26,6 +26,9 @@ interface AutoCompleteService {
 
     @GET("${AppUrl.Url.API}/ac/")
     fun autoComplete(@Query("q") query: String): Observable<List<AutoCompleteServiceRawResult>>
+
+    @GET("${AppUrl.Url.API}/ac/")
+    suspend fun autoCompleteCo(@Query("q") query: String): List<AutoCompleteServiceRawResult>
 }
 
 data class AutoCompleteServiceRawResult(val phrase: String)

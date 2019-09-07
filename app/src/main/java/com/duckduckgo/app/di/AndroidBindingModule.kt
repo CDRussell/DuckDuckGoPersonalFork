@@ -47,6 +47,7 @@ import com.duckduckgo.app.survey.ui.SurveyActivity
 import com.duckduckgo.app.tabs.ui.TabSwitcherActivity
 import com.duckduckgo.app.tabs.ui.old.TabSwitcherActivityLegacy
 import com.duckduckgo.app.widget.ui.AddWidgetInstructionsActivity
+import com.duckduckgo.mobile.android.LauncherActivity
 import dagger.Module
 import dagger.android.ContributesAndroidInjector
 
@@ -123,6 +124,10 @@ abstract class AndroidBindingModule {
     @ActivityScoped
     @ContributesAndroidInjector
     abstract fun aboutDuckDuckGoActivity(): AboutDuckDuckGoActivity
+
+    @ActivityScoped
+    @ContributesAndroidInjector
+    abstract fun launcherActivity(): LauncherActivity
 
     /* Fragments */
 

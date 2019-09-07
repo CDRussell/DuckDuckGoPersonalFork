@@ -38,7 +38,7 @@ class PrevalenceRawStore @Inject constructor(
             val json = context.resources.openRawResource(R.raw.prevalence).bufferedReader().use { it.readText() }
             val mapType = Types.newParameterizedType(Map::class.java, String::class.java, Any::class.java)
             val adapter = moshi.adapter<Map<String, Double>>(mapType)
-            data = adapter.fromJson(json)
+            data = adapter.fromJson(json)!!
         }
     }
 

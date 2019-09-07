@@ -69,6 +69,11 @@
 
     </style>
 
+    <style name="AppTheme.Launcher">
+        <item name="android:windowShowWallpaper">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+
     <style name="AppTheme.Dark" parent="AppTheme.BaseDark" />
 
     <style name="AppTheme.Dark.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
