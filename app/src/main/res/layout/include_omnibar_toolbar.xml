@@ -96,7 +96,7 @@
                         android:textSize="13sp"
                         android:textStyle="normal"
                         app:layout_constraintBottom_toBottomOf="parent"
-                        app:layout_constraintEnd_toStartOf="@id/clearTextButton"
+                        app:layout_constraintEnd_toStartOf="@id/voiceInputButton"
                         app:layout_constraintStart_toEndOf="@id/privacyGradeButton"
                         app:layout_constraintTop_toTopOf="parent"
                         tools:text="https://duckduckgo.com/?q=areallylongexampleexample" />
@@ -114,6 +114,15 @@
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintTop_toTopOf="parent"
                         tools:visibility="visible" />
+
+                    <ImageView
+                        android:id="@+id/voiceInputButton"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_mic_toolbar_24dp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toStartOf="@id/clearTextButton"
+                        app:layout_constraintTop_toTopOf="parent" />
 
                 </androidx.constraintlayout.widget.ConstraintLayout>
 

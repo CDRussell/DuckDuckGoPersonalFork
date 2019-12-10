@@ -114,6 +114,7 @@ class BrowserTabViewModel(
         val isDesktopBrowsingMode: Boolean = false,
         val showPrivacyGrade: Boolean = false,
         val showClearButton: Boolean = false,
+        val showVoiceInputButton: Boolean = true,
         val showTabsButton: Boolean = true,
         val showFireButton: Boolean = true,
         val showMenuButton: Boolean = true,
@@ -182,6 +183,7 @@ class BrowserTabViewModel(
         class SaveCredentials(val request: BasicAuthenticationRequest, val credentials: BasicAuthenticationCredentials) : Command()
         object GenerateWebViewPreviewImage : Command()
         object LaunchTabSwitcher : Command()
+        object NoVoiceInputIdentified : Command()
     }
 
     val autoCompleteViewState: MutableLiveData<AutoCompleteViewState> = MutableLiveData()
@@ -314,7 +316,9 @@ class BrowserTabViewModel(
             is AutoCompleteSearchSuggestion -> PixelName.AUTOCOMPLETE_SEARCH_SELECTION
         }
 
-        pixel.fire(pixelName, params)
+        pixelName?.let {
+            pixel.fire(it, params)
+        }
     }
 
     fun onUserSubmittedQuery(input: String) {
@@ -602,6 +606,7 @@ class BrowserTabViewModel(
         val autoCompleteSuggestionsEnabled = appSettingsPreferencesStore.autoCompleteSuggestionsEnabled
         val showAutoCompleteSuggestions = hasFocus && query.isNotBlank() && hasQueryChanged && autoCompleteSuggestionsEnabled
         val showClearButton = hasFocus && query.isNotBlank()
+        val showVoiceInputButton = true
         val showControls = !hasFocus || query.isBlank()
 
         omnibarViewState.value = currentOmnibarViewState.copy(isEditing = hasFocus)
@@ -612,7 +617,8 @@ class BrowserTabViewModel(
             showTabsButton = showControls,
             showFireButton = showControls,
             showMenuButton = showControls,
-            showClearButton = showClearButton
+            showClearButton = showClearButton,
+            showVoiceInputButton = showVoiceInputButton
         )
 
         autoCompleteViewState.value = AutoCompleteViewState(showAutoCompleteSuggestions, autoCompleteSearchResults)
@@ -872,4 +878,19 @@ class BrowserTabViewModel(
     fun userLaunchingTabSwitcher() {
         command.value = LaunchTabSwitcher
     }
+
+    fun voiceInputsReceived(voiceInputs: List<VoiceInput>) {
+        for (input in voiceInputs) {
+            Timber.d("Got voice input candidate: '${input.text}', confidence = ${input.confidence}")
+        }
+
+        if (voiceInputs.isEmpty()) {
+            command.value = NoVoiceInputIdentified
+            return
+        }
+
+        onUserSubmittedQuery(voiceInputs.first().text)
+    }
+
+    data class VoiceInput(val text: String, val confidence: Float)
 }

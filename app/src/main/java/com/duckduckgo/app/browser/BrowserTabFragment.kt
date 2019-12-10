@@ -32,6 +32,10 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.RecognizerIntent.*
+import android.speech.SpeechRecognizer
 import android.text.Editable
 import android.view.*
 import android.view.View.*
@@ -53,7 +57,11 @@ import androidx.core.view.isNotEmpty
 import androidx.core.view.isVisible
 import androidx.core.view.postDelayed
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.*
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.Observer
+import androidx.lifecycle.OnLifecycleEvent
+import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.duckduckgo.app.autocomplete.api.AutoCompleteApi.AutoCompleteSuggestion
 import com.duckduckgo.app.bookmarks.ui.EditBookmarkDialogFragment
@@ -103,6 +111,7 @@ import org.jetbrains.anko.longToast
 import org.jetbrains.anko.share
 import timber.log.Timber
 import java.io.File
+import java.util.*
 import javax.inject.Inject
 import kotlin.concurrent.thread
 import kotlin.coroutines.CoroutineContext
@@ -203,6 +212,8 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
 
     private var webView: WebView? = null
 
+    private lateinit var speechRecognizer: SpeechRecognizer
+
     private val findInPageTextWatcher = object : TextChangedWatcher() {
         override fun afterTextChanged(editable: Editable) {
             viewModel.userFindingInPage(findInPageInput.text.toString())
@@ -241,6 +252,7 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
         configureWebView()
         viewModel.registerWebViewListener(webViewClient, webChromeClient)
         configureOmnibarTextInput()
+        configureOmnibarVoiceInput()
         configureFindInPage()
         configureAutoComplete()
         configureKeyboardAwareLogoAnimation()
@@ -481,6 +493,9 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
             is Command.SaveCredentials -> saveBasicAuthCredentials(it.request, it.credentials)
             is Command.GenerateWebViewPreviewImage -> generateWebViewPreviewImage()
             is Command.LaunchTabSwitcher -> launchTabSwitcher()
+            is Command.NoVoiceInputIdentified -> {
+                Snackbar.make(toolbar, "Voice input not recognized", Snackbar.LENGTH_LONG).show()
+            }
         }
     }
 
@@ -686,6 +701,24 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
         })
 
         clearTextButton.setOnClickListener { omnibarTextInput.setText("") }
+    }
+
+    private fun configureOmnibarVoiceInput() {
+        voiceInputButton.setOnClickListener {
+            listenForVoiceInputWithPermissionCheck()
+        }
+
+        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(activity)
+        speechRecognizer.setRecognitionListener(VoiceInputListener())
+    }
+
+    private fun removeVoiceInputListeningIndicator() {
+        voiceInputButton.clearColorFilter()
+    }
+
+    private fun showVoiceInputListeningIndicator() {
+        val color = ContextCompat.getColor(activity!!, R.color.listeningColor)
+        voiceInputButton.setColorFilter(color)
     }
 
     private fun configureKeyboardAwareLogoAnimation() {
@@ -960,6 +993,14 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
         downloadFileWithPermissionCheck()
     }
 
+    private fun listenForVoiceInputWithPermissionCheck() {
+        if (hasMicrophonePermission()) {
+            listenForVoiceInput()
+        } else {
+            requestMicrophonePermission()
+        }
+    }
+
     private fun downloadFileWithPermissionCheck() {
         if (hasWriteStoragePermission()) {
             downloadFile()
@@ -1007,16 +1048,44 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
         requestPermissions(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE)
     }
 
+    private fun hasMicrophonePermission(): Boolean {
+        return ContextCompat.checkSelfPermission(context!!, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun requestMicrophonePermission() {
+        requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), PERMISSION_REQUEST_MICROPHONE)
+    }
+
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        if (requestCode == PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE) {
-            if ((grantResults.isNotEmpty()) && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Timber.i("Write external storage permission granted")
-                downloadFile()
-            } else {
-                Timber.i("Write external storage permission refused")
-                Snackbar.make(toolbar, R.string.permissionRequiredToDownload, Snackbar.LENGTH_LONG).show()
+        when (requestCode) {
+            PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE -> {
+                if ((grantResults.isNotEmpty()) && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Timber.i("Write external storage permission granted")
+                    downloadFile()
+                } else {
+                    Timber.i("Write external storage permission refused")
+                    Snackbar.make(toolbar, R.string.permissionRequiredToDownload, Snackbar.LENGTH_LONG).show()
+                }
+            }
+            PERMISSION_REQUEST_MICROPHONE -> {
+                if ((grantResults.isNotEmpty()) && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Timber.i("Microphone permission granted")
+                    listenForVoiceInput()
+                } else {
+                    Timber.i("Microphone permission refused")
+                    Snackbar.make(toolbar, R.string.permissionRequiredToVoiceSearch, Snackbar.LENGTH_LONG).show()
+                }
             }
         }
+    }
+
+    private fun listenForVoiceInput() {
+        val speechInputIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).also {
+            it.putExtra(EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_WEB_SEARCH)
+            it.putExtra(EXTRA_LANGUAGE, Locale.getDefault().toLanguageTag())
+            it.putExtra(EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, true)
+        }
+        speechRecognizer.startListening(speechInputIntent)
     }
 
     private fun launchSurvey(survey: Survey) {
@@ -1050,6 +1119,7 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
 
         private const val REQUEST_CODE_CHOOSE_FILE = 100
         private const val PERMISSION_REQUEST_WRITE_EXTERNAL_STORAGE = 200
+        private const val PERMISSION_REQUEST_MICROPHONE = 201
 
         private const val URL_BUNDLE_KEY = "url"
 
@@ -1185,6 +1255,7 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
         private fun renderToolbarMenus(viewState: BrowserViewState) {
             privacyGradeButton?.isVisible = viewState.showPrivacyGrade
             clearTextButton?.isVisible = viewState.showClearButton
+            voiceInputButton?.isVisible = viewState.showVoiceInputButton
             tabsButton?.isVisible = viewState.showTabsButton
             fireMenuButton?.isVisible = viewState.showFireButton
             menuButton?.isVisible = viewState.showMenuButton
@@ -1307,5 +1378,65 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
 
         private fun shouldUpdateOmnibarTextInput(viewState: OmnibarViewState, omnibarInput: String?) =
             (!viewState.isEditing || omnibarInput.isNullOrEmpty()) && omnibarTextInput.isDifferent(omnibarInput)
+    }
+
+    private inner class VoiceInputListener : RecognitionListener {
+        override fun onReadyForSpeech(params: Bundle?) {
+            Timber.i("onReadyForSpeech")
+            showVoiceInputListeningIndicator()
+        }
+
+        override fun onRmsChanged(rmsdB: Float) {
+            Timber.i("onRmsChanged")
+        }
+
+        override fun onBufferReceived(buffer: ByteArray?) {
+            Timber.i("onBufferReceived")
+        }
+
+        override fun onPartialResults(partialResults: Bundle?) {
+            Timber.i("onPartialResults")
+        }
+
+        override fun onEvent(eventType: Int, params: Bundle?) {
+            Timber.i("onEvent")
+        }
+
+        override fun onBeginningOfSpeech() {
+            Timber.i("onBeginningOfSpeech")
+        }
+
+        override fun onEndOfSpeech() {
+            Timber.i("onEndOfSpeech")
+            removeVoiceInputListeningIndicator()
+        }
+
+        override fun onError(error: Int) {
+            Timber.i("onError - code: $error")
+            removeVoiceInputListeningIndicator()
+
+            when (error) {
+                SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> {
+                    Snackbar.make(toolbar, "Insufficient permissions", Snackbar.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        override fun onResults(results: Bundle?) {
+            Timber.i("onResults")
+            val list = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION) ?: emptyList<String>()
+            val confidences = results?.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES) ?: floatArrayOf()
+            Timber.i("Found ${list.size} results from voice input")
+
+            val combinedList = mutableListOf<VoiceInput>()
+            for (i in list.indices) {
+                val voiceInputResult = VoiceInput(list[i], confidences[i])
+                combinedList.add(voiceInputResult)
+                Timber.i("Found result: $voiceInputResult")
+            }
+
+            viewModel.voiceInputsReceived(combinedList)
+        }
+
     }
 }
