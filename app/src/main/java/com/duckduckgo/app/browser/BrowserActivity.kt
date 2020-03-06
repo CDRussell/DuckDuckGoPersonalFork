@@ -49,6 +49,7 @@ import com.duckduckgo.app.tabs.model.TabEntity
 import kotlinx.android.synthetic.main.activity_browser.*
 import kotlinx.coroutines.*
 import org.jetbrains.anko.longToast
+import org.mozilla.geckoview.GeckoRuntime
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -79,10 +80,13 @@ class BrowserActivity : DuckDuckGoActivity(), CoroutineScope by MainScope() {
     private lateinit var renderer: BrowserStateRenderer
 
     private var openMessageInNewTabJob: Job? = null
+    lateinit var geckoRuntime: GeckoRuntime
 
     @SuppressLint("MissingSuperCall")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.daggerInject()
+
+        geckoRuntime = GeckoRuntime.create(this)
 
         renderer = BrowserStateRenderer()
 

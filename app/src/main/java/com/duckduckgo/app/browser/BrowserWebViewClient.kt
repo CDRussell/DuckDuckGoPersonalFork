@@ -96,7 +96,7 @@ class BrowserWebViewClient(
                 is SpecialUrlDetector.UrlType.Web -> {
                     if (requestRewriter.shouldRewriteRequest(url)) {
                         val newUri = requestRewriter.rewriteRequestWithCustomQueryParams(url)
-                        webView.loadUrl(newUri.toString())
+                        webViewClientListener?.loadUrl(newUri.toString())
                         return true
                     }
                     false

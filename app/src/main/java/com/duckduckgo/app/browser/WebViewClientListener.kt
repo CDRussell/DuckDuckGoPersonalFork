@@ -46,4 +46,5 @@ interface WebViewClientListener {
     fun recoverFromRenderProcessGone()
     fun requiresAuthentication(request: BasicAuthenticationRequest)
     fun closeCurrentTab()
+    fun loadUrl(url: String)
 }

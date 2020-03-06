@@ -17,41 +17,60 @@
 package com.duckduckgo.app.browser.tabpreview
 
 import android.graphics.Bitmap
-import android.webkit.WebView
 import androidx.core.view.drawToBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.mozilla.geckoview.GeckoView
 import timber.log.Timber
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 
 interface WebViewPreviewGenerator {
-    suspend fun generatePreview(webView: WebView): Bitmap
+    suspend fun generatePreview(webView: GeckoView): Bitmap?
 }
 
 class FileBasedWebViewPreviewGenerator : WebViewPreviewGenerator {
 
-    override suspend fun generatePreview(webView: WebView): Bitmap {
-        val fullSizeBitmap = convertWebViewToBitmap(webView)
+    override suspend fun generatePreview(webView: GeckoView): Bitmap? {
+        val fullSizeBitmap = convertWebViewToBitmap(webView) ?: return null
         val scaledBitmap = scaleBitmap(fullSizeBitmap)
         Timber.d("Full size bitmap: ${fullSizeBitmap.byteCount}, reduced size: ${scaledBitmap.byteCount}")
         return scaledBitmap
     }
 
-    private suspend fun convertWebViewToBitmap(webView: WebView): Bitmap {
-        return withContext(Dispatchers.Main) {
+    private suspend fun convertWebViewToBitmap(webView: GeckoView): Bitmap? {
+        val gR = withContext(Dispatchers.Main) {
             disableScrollbars(webView)
             val bm = webView.drawToBitmap()
-            enableScrollbars(webView)
-            return@withContext bm
+            return@withContext webView.capturePixels()
         }
+
+        val bm = withContext(Dispatchers.Default) {
+            Timber.i("Waiting for tab image")
+            //gR.poll()
+
+            return@withContext suspendCoroutine<Bitmap> { cont ->
+                gR.accept { bitmap ->
+                    Timber.i("Got tab image")
+                    cont.resume(bitmap!!)
+                }
+            }
+        }
+
+        withContext(Dispatchers.Main) {
+            enableScrollbars(webView)
+        }
+
+        return bm
     }
 
-    private fun enableScrollbars(webView: WebView) {
+    private fun enableScrollbars(webView: GeckoView) {
         webView.isVerticalScrollBarEnabled = true
         webView.isHorizontalScrollBarEnabled = true
     }
 
-    private fun disableScrollbars(webView: WebView) {
+    private fun disableScrollbars(webView: GeckoView) {
         webView.isVerticalScrollBarEnabled = false
         webView.isHorizontalScrollBarEnabled = false
     }

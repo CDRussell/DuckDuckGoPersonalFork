@@ -65,6 +65,7 @@ import io.reactivex.schedulers.Schedulers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.jetbrains.anko.doAsync
+import org.mozilla.geckoview.GeckoRuntime
 import timber.log.Timber
 import javax.inject.Inject
 import kotlin.concurrent.thread
@@ -159,6 +160,7 @@ open class DuckDuckGoApplication : HasActivityInjector, HasServiceInjector, HasS
     lateinit var variantManager: VariantManager
 
     private var launchedByFireAction: Boolean = false
+
 
     open lateinit var daggerAppComponent: AppComponent
 

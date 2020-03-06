@@ -120,6 +120,7 @@ ext {
     mockitoKotlin = "2.0.0"
     commonsMath = "3.6.1"
     referrerLibrary = "1.0"
+    geckoView = "74.0.20200305014626"
 }
 
 
@@ -135,6 +136,9 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines"
     androidTestImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutines"
+
+    implementation "org.mozilla.geckoview:geckoview:${geckoView}"
+
 
     implementation "androidx.appcompat:appcompat:$androidX"
     implementation "com.google.android.material:material:$materialDesign"

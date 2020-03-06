@@ -390,6 +390,10 @@ class BrowserTabViewModel(
         viewModelScope.launch { removeCurrentTabFromRepository() }
     }
 
+    override fun loadUrl(url: String) {
+        command.value = Navigate(url)
+    }
+
     fun onUserPressedForward() {
         if (!currentBrowserViewState().browserShowing) {
             browserViewState.value = currentBrowserViewState().copy(browserShowing = true)

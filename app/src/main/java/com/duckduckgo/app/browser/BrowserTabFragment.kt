@@ -28,12 +28,16 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.media.MediaScannerConnection
 import android.net.Uri
-import android.os.*
+import android.os.Bundle
+import android.os.Environment
+import android.os.Message
 import android.text.Editable
 import android.view.*
 import android.view.View.*
 import android.view.inputmethod.EditorInfo
-import android.webkit.*
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
+import android.webkit.WebSettings
 import android.webkit.WebView.FindListener
 import android.webkit.WebView.HitTestResult
 import android.webkit.WebView.HitTestResult.*
@@ -93,6 +97,7 @@ import com.duckduckgo.app.widget.ui.AddWidgetInstructionsActivity
 import com.duckduckgo.widget.SearchWidgetLight
 import com.google.android.material.snackbar.Snackbar
 import dagger.android.support.AndroidSupportInjection
+import kotlinx.android.synthetic.main.activity_user_survey.*
 import kotlinx.android.synthetic.main.fragment_browser_tab.*
 import kotlinx.android.synthetic.main.include_cta_buttons.view.*
 import kotlinx.android.synthetic.main.include_dax_dialog_cta.*
@@ -104,6 +109,9 @@ import kotlinx.android.synthetic.main.popup_window_browser_menu.view.*
 import kotlinx.coroutines.*
 import org.jetbrains.anko.longToast
 import org.jetbrains.anko.share
+import org.mozilla.geckoview.ContentBlocking
+import org.mozilla.geckoview.GeckoSession
+import org.mozilla.geckoview.GeckoSessionSettings
 import timber.log.Timber
 import java.io.File
 import javax.inject.Inject
@@ -112,6 +120,7 @@ import kotlin.coroutines.CoroutineContext
 
 class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
 
+    private var session: GeckoSession? = null
     private val supervisorJob = SupervisorJob()
 
     override val coroutineContext: CoroutineContext
@@ -217,7 +226,7 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
     private val menuButton: ViewGroup?
         get() = appBarLayout.browserMenu
 
-    private var webView: WebView? = null
+    //private var webView: WebView? = null
 
     private var instructionsCard: Toast? = null
         get() {
@@ -294,16 +303,16 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
     }
 
     private fun processMessage(message: Message) {
-        val transport = message.obj as WebView.WebViewTransport
-        transport.webView = webView
-        message.sendToTarget()
-        val tabsButton = tabsButton?.actionView as TabSwitcherButton
-        tabsButton.animateCount()
-        viewModel.onMessageProcessed()
+//        val transport = message.obj as WebView.WebViewTransport
+//        transport.webView = webView
+//        message.sendToTarget()
+//        val tabsButton = tabsButton?.actionView as TabSwitcherButton
+//        tabsButton.animateCount()
+//        viewModel.onMessageProcessed()
     }
 
     private fun updateOrDeleteWebViewPreview() {
-        val url = viewModel.url
+        val url = lastGeckoUri
         Timber.d("Updating or deleting WebView preview for $url")
         if (url == null) {
             viewModel.deleteTabPreview(tabId)
@@ -326,6 +335,7 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
     }
 
     private fun launchTabSwitcher() {
+        updateOrDeleteWebViewPreview()
         val activity = activity ?: return
         startActivity(TabSwitcherActivity.intent(activity, tabId))
         activity.overridePendingTransition(R.anim.tab_anim_fade_in, R.anim.slide_to_bottom)
@@ -431,16 +441,20 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
         newTabLayout.show()
         showKeyboardImmediately()
         appBarLayout.setExpanded(true)
-        webView?.onPause()
-        webView?.hide()
+        session?.stop()
+        geckoView?.hide()
+//        webView?.onPause()
+//        webView?.hide()
         omnibarScrolling.disableOmnibarScrolling(toolbarContainer)
         logoHidingListener.onReadyToShowLogo()
     }
 
     private fun showBrowser() {
         newTabLayout.gone()
-        webView?.show()
-        webView?.onResume()
+        geckoView?.show()
+        //webView?.show()
+        //session?.reu
+        //webView?.onResume()
         omnibarScrolling.enableOmnibarScrolling(toolbarContainer)
     }
 
@@ -452,7 +466,8 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
         hideKeyboard()
         renderer.hideFindInPage()
         viewModel.registerDaxBubbleCtaDismissed()
-        webView?.loadUrl(url)
+//        webView?.loadUrl(url)
+        session?.loadUri(url)
     }
 
     fun onRefreshRequested() {
@@ -460,7 +475,8 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
     }
 
     fun refresh() {
-        webView?.reload()
+//        webView?.reload()
+        session?.reload()
     }
 
     private fun processCommand(it: Command?) {
@@ -482,10 +498,16 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
                 navigate(it.url)
             }
             is Command.NavigateBack -> {
-                webView?.goBackOrForward(-it.steps)
+//                /webView?.goBackOrForward(-it.steps)
+
+                for (i in 1..it.steps) {
+                    session?.goBack()
+                }
+
             }
             is Command.NavigateForward -> {
-                webView?.goForward()
+//                webView?.goForward()
+                session?.goForward()
             }
             is Command.ResetHistory -> {
                 resetWebView()
@@ -522,8 +544,8 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
                 )
             }
             is Command.DownloadImage -> requestImageDownload(it.url)
-            is Command.FindInPageCommand -> webView?.findAllAsync(it.searchTerm)
-            is Command.DismissFindInPage -> webView?.findAllAsync("")
+            //is Command.FindInPageCommand -> webView?.findAllAsync(it.searchTerm)
+            //is Command.DismissFindInPage -> webView?.findAllAsync("")
             is Command.ShareLink -> launchSharePageChooser(it.url)
             is Command.CopyLink -> {
                 clipboardManager.primaryClip = ClipData.newPlainText(null, it.url)
@@ -575,7 +597,7 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
     }
 
     private fun generateWebViewPreviewImage() {
-        webView?.let { webView ->
+        geckoView?.let { webView ->
 
             // if there's an existing job for generating a preview, cancel that in favor of the new request
             bitmapGeneratorJob?.cancel()
@@ -583,7 +605,7 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
             bitmapGeneratorJob = launch {
                 Timber.d("Generating WebView preview")
                 try {
-                    val preview = previewGenerator.generatePreview(webView)
+                    val preview = previewGenerator.generatePreview(webView) ?: return@launch
                     val fileName = previewPersister.save(preview, tabId)
                     viewModel.updateTabPreview(tabId, fileName)
                     Timber.d("Saved and updated tab preview")
@@ -610,7 +632,8 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
 
             if (activities.isEmpty()) {
                 if (fallbackUrl != null) {
-                    webView?.loadUrl(fallbackUrl)
+//                    webView?.loadUrl(fallbackUrl)
+                    session?.loadUri(fallbackUrl)
                 } else {
                     showToast(R.string.unableToOpenLink)
                 }
@@ -693,13 +716,13 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
     }
 
     private fun saveBasicAuthCredentials(request: BasicAuthenticationRequest, credentials: BasicAuthenticationCredentials) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val webViewDatabase = WebViewDatabase.getInstance(context)
-            webViewDatabase.setHttpAuthUsernamePassword(request.host, request.realm, credentials.username, credentials.password)
-        } else {
-            @Suppress("DEPRECATION")
-            webView?.setHttpAuthUsernamePassword(request.host, request.realm, credentials.username, credentials.password)
-        }
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//            val webViewDatabase = WebViewDatabase.getInstance(context)
+//            webViewDatabase.setHttpAuthUsernamePassword(request.host, request.realm, credentials.username, credentials.password)
+//        } else {
+//            @Suppress("DEPRECATION")
+//            webView?.setHttpAuthUsernamePassword(request.host, request.realm, credentials.username, credentials.password)
+//        }
     }
 
     private fun configureAutoComplete() {
@@ -722,7 +745,7 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
         toolbar.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.fire -> {
-                    browserActivity?.launchFire()
+                    //browserActivity?.launchFire()
                     return@setOnMenuItemClickListener true
                 }
                 else -> return@setOnMenuItemClickListener false
@@ -755,11 +778,11 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
             }
         }
 
-        previousSearchTermButton.setOnClickListener { webView?.findNext(false) }
-        nextSearchTermButton.setOnClickListener { webView?.findNext(true) }
-        closeFindInPagePanel.setOnClickListener {
-            viewModel.dismissFindInView()
-        }
+//        previousSearchTermButton.setOnClickListener { webView?.findNext(false) }
+//        nextSearchTermButton.setOnClickListener { webView?.findNext(true) }
+//        closeFindInPagePanel.setOnClickListener {
+//            viewModel.dismissFindInView()
+//        }
     }
 
     private fun configureOmnibarTextInput() {
@@ -813,51 +836,94 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
 
     @SuppressLint("SetJavaScriptEnabled")
     private fun configureWebView() {
-        webView = layoutInflater.inflate(
-            R.layout.include_duckduckgo_browser_webview,
-            webViewContainer,
-            true
-        ).findViewById(R.id.browserWebView) as WebView
+//        webView = layoutInflater.inflate(R.layout.include_duckduckgo_browser_webview, webViewContainer, true).findViewById(R.id.browserWebView) as WebView
+//
+//        webView?.let {
+//            userAgentProvider = UserAgentProvider(it.settings.userAgentString, deviceInfo)
+//
+//            it.webViewClient = webViewClient
+//            it.webChromeClient = webChromeClient
+//
+//            it.settings.apply {
+//                userAgentString = userAgentProvider.getUserAgent()
+//                javaScriptEnabled = true
+//                domStorageEnabled = true
+//                loadWithOverviewMode = true
+//                useWideViewPort = true
+//                builtInZoomControls = true
+//                displayZoomControls = false
+//                mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+//                setSupportMultipleWindows(true)
+//                disableWebSql(this)
+//                setSupportZoom(true)
+//            }
+//
+//            it.setDownloadListener { url, _, contentDisposition, mimeType, _ ->
+//                requestFileDownload(url, contentDisposition, mimeType)
+//            }
+//
+//            it.setOnTouchListener { _, _ ->
+//                if (omnibarTextInput.isFocused) {
+//                    focusDummy.requestFocus()
+//                }
+//                false
+//            }
+//
+//            registerForContextMenu(it)
+//
+//            it.setFindListener(this)
+//        }
 
-        webView?.let {
-            userAgentProvider = UserAgentProvider(it.settings.userAgentString, deviceInfo)
+//        if (BuildConfig.DEBUG) {
+//            WebView.setWebContentsDebuggingEnabled(true)
+//        }
 
-            it.webViewClient = webViewClient
-            it.webChromeClient = webChromeClient
+        configureGeckoView()
+    }
 
-            it.settings.apply {
-                userAgentString = userAgentProvider.getUserAgent()
-                javaScriptEnabled = true
-                domStorageEnabled = true
-                loadWithOverviewMode = true
-                useWideViewPort = true
-                builtInZoomControls = true
-                displayZoomControls = false
-                mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-                setSupportMultipleWindows(true)
-                disableWebSql(this)
-                setSupportZoom(true)
-            }
+    var lastGeckoUri: String? = null
+    var nav = Nav()
 
-            it.setDownloadListener { url, _, contentDisposition, mimeType, _ ->
-                requestFileDownload(url, contentDisposition, mimeType)
-            }
+    data class Nav(
+        override val originalUrl: String? = null,
+        override val currentUrl: String? = null,
+        override val title: String? = null,
+        override val stepsToPreviousPage: Int = 0,
+        override val canGoBack: Boolean = false,
+        override val canGoForward: Boolean = false,
+        override val hasNavigationHistory: Boolean = false
+    ) : WebNavigationState
 
-            it.setOnTouchListener { _, _ ->
-                if (omnibarTextInput.isFocused) {
-                    focusDummy.requestFocus()
+    private fun configureGeckoView() {
+        session = GeckoSession().also { session ->
+            session.open(browserActivity!!.geckoRuntime)
+            session.settings.useTrackingProtection = true
+            session.contentBlockingDelegate = object : ContentBlocking.Delegate {
+                override fun onContentBlocked(session: GeckoSession, blocked: ContentBlocking.BlockEvent) {
+                    Timber.i("GeckoView blocked a tracker: ${blocked.uri} - ${blocked.cookieBehaviorCategory} - ${blocked.antiTrackingCategory}")
                 }
-                false
+            }
+            geckoView.setSession(session)
+            session.navigationDelegate = object : GeckoSession.NavigationDelegate {
+                override fun onCanGoBack(p0: GeckoSession, canGoBack: Boolean) {
+                    viewModel.navigationStateChanged(nav.copy(canGoBack = canGoBack))
+                }
+
+                override fun onLocationChange(session: GeckoSession, uri: String?) {
+                    Timber.i("GeckoView uri is now $uri")
+                    lastGeckoUri = uri
+                    viewModel.navigationStateChanged(nav.copy(currentUrl = uri))
+                }
             }
 
-            registerForContextMenu(it)
-
-            it.setFindListener(this)
+            session.progressDelegate = object : GeckoSession.ProgressDelegate {
+                override fun onProgressChange(p0: GeckoSession, p1: Int) {
+                    viewModel.progressChanged(p1)
+                }
+            }
         }
 
-        if (BuildConfig.DEBUG) {
-            WebView.setWebContentsDebuggingEnabled(true)
-        }
+
     }
 
     /**
@@ -872,24 +938,24 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
         omnibarTextInput.replaceTextChangedListener(omnibarInputTextWatcher)
     }
 
-    override fun onCreateContextMenu(menu: ContextMenu, view: View, menuInfo: ContextMenu.ContextMenuInfo?) {
-        webView?.hitTestResult?.let {
-            val target = getLongPressTarget(it) ?: return
-            viewModel.userLongPressedInWebView(target, menu)
-        }
-    }
+//    override fun onCreateContextMenu(menu: ContextMenu, view: View, menuInfo: ContextMenu.ContextMenuInfo?) {
+//        webView?.hitTestResult?.let {
+//            val target = getLongPressTarget(it) ?: return
+//            viewModel.userLongPressedInWebView(target, menu)
+//        }
+//    }
 
     /**
      * Use requestFocusNodeHref to get the a tag url for the touched image.
      */
-    private fun getTargetUrlForImageSource(): String? {
-        val handler = Handler()
-        val message = handler.obtainMessage()
-
-        webView?.requestFocusNodeHref(message)
-
-        return message.data.getString(URL_BUNDLE_KEY)
-    }
+//    private fun getTargetUrlForImageSource(): String? {
+//        val handler = Handler()
+//        val message = handler.obtainMessage()
+//
+//        webView?.requestFocusNodeHref(message)
+//
+//        return message.data.getString(URL_BUNDLE_KEY)
+//    }
 
     private fun getLongPressTarget(hitTestResult: HitTestResult): LongPressTarget? {
         return when {
@@ -901,7 +967,8 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
                 type = hitTestResult.type
             )
             hitTestResult.type == SRC_IMAGE_ANCHOR_TYPE -> LongPressTarget(
-                url = getTargetUrlForImageSource(),
+//                url = getTargetUrlForImageSource()
+                "",
                 imageUrl = hitTestResult.extra,
                 type = hitTestResult.type
             )
@@ -912,16 +979,16 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
         }
     }
 
-    override fun onContextItemSelected(item: MenuItem): Boolean {
-        webView?.hitTestResult?.let {
-            val target = getLongPressTarget(it)
-            if (target != null && viewModel.userSelectedItemFromLongPressMenu(target, item)) {
-                return true
-            }
-        }
-
-        return super.onContextItemSelected(item)
-    }
+//    override fun onContextItemSelected(item: MenuItem): Boolean {
+//        webView?.hitTestResult?.let {
+//            val target = getLongPressTarget(it)
+//            if (target != null && viewModel.userSelectedItemFromLongPressMenu(target, item)) {
+//                return true
+//            }
+//        }
+//
+//        return super.onContextItemSelected(item)
+//    }
 
     private fun launchPopupMenu() {
         popupMenu.show(rootView, toolbar)
@@ -987,12 +1054,12 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
      * Instead of saving using normal Android state mechanism - use our own implementation instead.
      */
     override fun onSaveInstanceState(bundle: Bundle) {
-        viewModel.saveWebViewState(webView, tabId)
+        //viewModel.saveWebViewState(webView, tabId)
         super.onSaveInstanceState(bundle)
     }
 
     override fun onViewStateRestored(bundle: Bundle?) {
-        viewModel.restoreWebViewState(webView, omnibarTextInput.text.toString())
+        //viewModel.restoreWebViewState(webView, omnibarTextInput.text.toString())
         viewModel.determineShowBrowser()
         super.onViewStateRestored(bundle)
     }
@@ -1001,9 +1068,9 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
         super.onHiddenChanged(hidden)
         if (hidden) {
             viewModel.onViewHidden()
-            webView?.onPause()
+            //webView?.onPause()
         } else {
-            webView?.onResume()
+            //webView?.onResume()
             viewModel.onViewVisible()
         }
     }
@@ -1037,9 +1104,11 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
     }
 
     private fun destroyWebView() {
-        webViewContainer?.removeAllViews()
-        webView?.destroy()
-        webView = null
+        //webViewContainer?.removeAllViews()
+        session?.stop()
+        session?.close()
+        //webView?.destroy()
+        //webView = null
     }
 
     private fun requestFileDownload(url: String, contentDisposition: String, mimeType: String) {
@@ -1544,7 +1613,10 @@ class BrowserTabFragment : Fragment(), FindListener, CoroutineScope {
         }
 
         private fun toggleDesktopSiteMode(isDesktopSiteMode: Boolean) {
-            webView?.settings?.userAgentString = userAgentProvider.getUserAgent(isDesktopSiteMode)
+            //webView?.settings?.userAgentString = userAgentProvider.getUserAgent(isDesktopSiteMode)
+            session?.settings?.let {
+                it.userAgentMode = if (isDesktopSiteMode) GeckoSessionSettings.USER_AGENT_MODE_DESKTOP else GeckoSessionSettings.USER_AGENT_MODE_MOBILE
+            }
         }
 
         private fun goFullScreen() {
