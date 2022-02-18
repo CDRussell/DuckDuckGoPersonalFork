@@ -21,6 +21,9 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.webkit.CookieManager
 import androidx.lifecycle.LifecycleObserver
+import androidx.webkit.WebViewAssetLoader
+import androidx.webkit.WebViewAssetLoader.AssetsPathHandler
+import androidx.webkit.WebViewAssetLoader.ResourcesPathHandler
 import com.duckduckgo.app.accessibility.AccessibilityManager
 import com.duckduckgo.app.browser.*
 import com.duckduckgo.app.browser.addtohome.AddToHomeCapabilityDetector
@@ -99,6 +102,14 @@ class BrowserModule {
     }
 
     @Provides
+    fun assetLoader(context: Context): WebViewAssetLoader {
+        return WebViewAssetLoader.Builder()
+            .addPathHandler("/assets/", AssetsPathHandler(context))
+            .addPathHandler("/res/", ResourcesPathHandler(context))
+            .build()
+    }
+
+    @Provides
     fun browserWebViewClient(
         webViewHttpAuthStore: WebViewHttpAuthStore,
         trustedCertificateStore: TrustedCertificateStore,
@@ -116,7 +127,8 @@ class BrowserModule {
         dispatcherProvider: DispatcherProvider,
         emailInjector: EmailInjector,
         accessibilityManager: AccessibilityManager,
-        trackingLinkDetector: TrackingLinkDetector
+        trackingLinkDetector: TrackingLinkDetector,
+        assetLoader: WebViewAssetLoader
     ): BrowserWebViewClient {
         return BrowserWebViewClient(
             webViewHttpAuthStore,
@@ -135,7 +147,8 @@ class BrowserModule {
             dispatcherProvider,
             emailInjector,
             accessibilityManager,
-            trackingLinkDetector
+            trackingLinkDetector,
+            assetLoader
         )
     }
 

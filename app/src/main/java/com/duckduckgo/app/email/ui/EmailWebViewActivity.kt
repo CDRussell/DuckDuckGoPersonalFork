@@ -71,7 +71,7 @@ class EmailWebViewActivity : DuckDuckGoActivity() {
                 databaseEnabled = false
                 setSupportZoom(true)
             }
-            emailInjector.addJsInterface(it) { }
+            emailInjector.addJsInterface(it, onTooltipShown = {}, onCredentialsTooltipShown = {})
         }
 
         url?.let {

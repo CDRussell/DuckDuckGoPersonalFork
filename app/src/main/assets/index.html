@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test Android</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.2">
+    <link rel="stylesheet" href="/assets/stylesheet.css">
+</head>
+<body>
+<form action="https://appassets.androidplatform.net/assets/index.html" onsubmit = "return(validate());">
+    <label for="username">Username</label>
+    <br>
+    <input id="username" type="text">
+    <br>
+    <br>
+    <label for="password">Password</label>
+    <br>
+    <input id="password" type="password">
+    <br>
+    <br>
+    <button type="submit">Sign in</button>
+</form>
+
+
+<!--<h2>Cross-origin iframe with trackers</h2>-->
+<!--<iframe id="iFrameCrossOriginWithTrackers" src="https://privacy-test-pages.glitch.me/tracker-reporting/1major-via-script.html"></iframe>-->
+
+<h2>Same-origin iFrame</h2>
+<iframe id="iFrameSameOrigin" src="https://appassets.androidplatform.net/assets/iframe.html"></iframe>
+
+<!--<h2>Cross-origin iframe</h2>-->
+<!--<iframe id="iFrameCrossOrigin" src="https://emanuele.io/ratto.html"></iframe>-->
+
+<h2>Cross-origin iframe</h2>
+<iframe id="iFrameCrossOriginTrello" src="https://stripe.dev/elements-examples/"></iframe>
+
+<script>
+
+function validate() {
+    var iframe = document.getElementById('iFrameSameOrigin')
+    iframe.contentWindow.postMessage('hello','*');
+    return false
+}
+
+window.addEventListener("message", (event) => {
+   console.log(`Received a message from the native layer: \norigin=${event.origin} \nisTrusted=${event.isTrusted} \ndata=${event.data}`);
+}, false);
+
+
+
+wm.onmessage = function(event) {
+    console.log("received a message through the named wm object: " + event.data);
+}
+
+document.addEventListener("DOMContentLoaded", function(){
+    console.log("dom content loaded");
+    wm.postMessage("I'm ready!");
+
+    const frames = document.querySelectorAll('iframe')
+    frames?.forEach(frame => {
+        injectJsIntoFrame(frame)
+        determineIfFrameIsLogin(frame)
+    })
+});
+
+function determineIfFrameIsLogin(frame) {
+    console.log(`Determining natively if ${frame.src} contains a login`)
+    wm.postMessage(frame.src);
+}
+
+function injectJsIntoFrame(frame) {
+    const iframeWin = frame.contentWindow || frame;
+    const iframeDoc = frame.contentDocument || iframeWin.document;
+    const canAccessFrame = canAccessIframe(frame);
+    console.log(`trying to inject into iFrame: ${frame.id} ${frame.src}. Can access iFrame: ${canAccessFrame}`);
+
+    var script = iframeDoc.createElement("script");
+    script.append(`
+        window.onload = function() {
+            console.log("hello from iFrame. I too have now loaded: " + document.title);
+            console.log("also from iFrame " + document.body.innerHTML);
+        }
+    `);
+    iframeDoc.documentElement.appendChild(script);
+}
+
+function canAccessIframe(iframe) {
+  try {
+    return Boolean(iframe.contentDocument);
+  }
+  catch(e){
+    return false;
+  }
+}
+
+</script>
+</body>
+</html>

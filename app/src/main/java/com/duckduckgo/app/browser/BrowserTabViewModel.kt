@@ -94,6 +94,8 @@ import com.duckduckgo.app.location.data.LocationPermissionType
 import com.duckduckgo.app.location.data.LocationPermissionsRepository
 import com.duckduckgo.app.location.ui.SiteLocationPermissionDialog
 import com.duckduckgo.app.location.ui.SystemLocationPermissionDialog
+import com.duckduckgo.app.logins.Credentials
+import com.duckduckgo.app.logins.LoginsManager
 import com.duckduckgo.app.pixels.AppPixelName
 import com.duckduckgo.app.privacy.db.NetworkLeaderboardDao
 import com.duckduckgo.app.privacy.db.UserWhitelistDao
@@ -161,6 +163,7 @@ class BrowserTabViewModel(
     private val gpc: Gpc,
     private val fireproofDialogsEventHandler: FireproofDialogsEventHandler,
     private val emailManager: EmailManager,
+    private val loginsManager: LoginsManager,
     private val accessibilitySettingsDataStore: AccessibilitySettingsDataStore,
     @AppCoroutineScope private val appCoroutineScope: CoroutineScope,
     private val appLinksHandler: AppLinksHandler,
@@ -396,7 +399,10 @@ class BrowserTabViewModel(
 
         class CopyAliasToClipboard(val alias: String) : Command()
         class InjectEmailAddress(val address: String) : Command()
+        class InjectCredentials(val url: String, val credentials: Credentials) : Command()
         class ShowEmailTooltip(val address: String) : Command()
+        class ShowCredentialsTooltip(val url: String, val credentials: List<Credentials>) : Command()
+        class ShowCredentialsTooltipIFrame(val url: String, val credentials: List<Credentials>) : Command()
         sealed class DaxCommand : Command() {
             object FinishTrackerAnimation : DaxCommand()
             class HideDaxDialog(val cta: Cta) : DaxCommand()
@@ -851,6 +857,11 @@ class BrowserTabViewModel(
                 tabRepository.updateTabFavicon(tabId, faviconFile.name)
             }
         }
+    }
+
+    override fun formDetectedInIFrame(url: String) {
+        Timber.i("Form detected in iFrame: %s", url)
+        showCredentialsDialogForIFrameForm(url)
     }
 
     override fun iconReceived(
@@ -1521,10 +1532,12 @@ class BrowserTabViewModel(
             }
 
             withContext(dispatchers.main()) {
-                siteLiveData.value = site
-                val isWhiteListed: Boolean = site?.domain?.let { isWhitelisted(it) } ?: false
-                if (!isWhiteListed) {
-                    privacyGradeViewState.value = currentPrivacyGradeState().copy(privacyGrade = improvedGrade)
+                site?.let { site ->
+                    siteLiveData.value = site
+                    val isWhiteListed: Boolean = site.domain?.let { isWhitelisted(it) } ?: false
+                    if (!isWhiteListed) {
+                        privacyGradeViewState.value = currentPrivacyGradeState().copy(privacyGrade = improvedGrade)
+                    }
                 }
             }
 
@@ -2343,6 +2356,34 @@ class BrowserTabViewModel(
         }
     }
 
+    fun showCredentialsDialog(url: String?) {
+        Timber.i("request to show credentials dialog for %s", url)
+        if (url == null) return
+
+        viewModelScope.launch {
+            val credentials = loginsManager.getCredentials(url)
+            if (credentials.isNotEmpty()) {
+                command.postValue(ShowCredentialsTooltip(url, credentials))
+            } else {
+                Timber.i("No credentials saved for site; not showing credentials dialog (%s)", url)
+            }
+        }
+    }
+
+    fun showCredentialsDialogForIFrameForm(url: String?) {
+        Timber.i("request to show credentials dialog for %s which is in an iFrame", url)
+        if (url == null) return
+
+        viewModelScope.launch {
+            val credentials = loginsManager.getCredentials(url)
+            if (credentials.isNotEmpty()) {
+                command.postValue(ShowCredentialsTooltipIFrame(url, credentials))
+            } else {
+                Timber.i("No credentials saved for site; not showing credentials dialog (%s)", url)
+            }
+        }
+    }
+
     fun consumeAliasAndCopyToClipboard() {
         emailManager.getAlias()?.let {
             command.value = CopyAliasToClipboard(it)
@@ -2355,6 +2396,10 @@ class BrowserTabViewModel(
             )
             emailManager.setNewLastUsedDate()
         }
+    }
+
+    fun shareCredentialsWithPage(url: String, credentials: Credentials) {
+        command.postValue(InjectCredentials(url, credentials))
     }
 
     fun consumeAlias() {
@@ -2501,6 +2546,10 @@ class BrowserTabViewModel(
         command.postValue(LoadExtractedUrl(extractedUrl = destinationUrl))
     }
 
+    fun saveCredentials(url: String, username: String, password: String?) {
+        loginsManager.saveCredentials(url, username, password)
+    }
+
     companion object {
         private const val FIXED_PROGRESS = 50
 
@@ -2544,6 +2593,7 @@ class BrowserTabViewModelFactory @Inject constructor(
     private val gpc: Provider<Gpc>,
     private val fireproofDialogsEventHandler: Provider<FireproofDialogsEventHandler>,
     private val emailManager: Provider<EmailManager>,
+    private val loginsManager: Provider<LoginsManager>,
     private val accessibilitySettingsDataStore: Provider<AccessibilitySettingsDataStore>,
     private val appCoroutineScope: Provider<CoroutineScope>,
     private val appLinksHandler: Provider<DuckDuckGoAppLinksHandler>,
@@ -2584,6 +2634,7 @@ class BrowserTabViewModelFactory @Inject constructor(
                     gpc.get(),
                     fireproofDialogsEventHandler.get(),
                     emailManager.get(),
+                    loginsManager.get(),
                     accessibilitySettingsDataStore.get(),
                     appCoroutineScope.get(),
                     appLinksHandler.get(),

@@ -29,6 +29,7 @@ import com.duckduckgo.app.email.api.EmailService
 import com.duckduckgo.app.email.db.EmailDataStore
 import com.duckduckgo.app.email.db.EmailEncryptedSharedPreferences
 import com.duckduckgo.app.global.DispatcherProvider
+import com.duckduckgo.app.logins.LoginsManager
 import com.duckduckgo.app.notification.NotificationSender
 import com.duckduckgo.app.notification.model.EmailWaitlistCodeNotification
 import com.duckduckgo.app.statistics.pixels.Pixel
@@ -58,10 +59,11 @@ class EmailModule {
     @Provides
     fun providesEmailInjector(
         emailManager: EmailManager,
+        loginsManager: LoginsManager,
         duckDuckGoUrlDetector: DuckDuckGoUrlDetector,
         dispatcherProvider: DispatcherProvider
     ): EmailInjector {
-        return EmailInjectorJs(emailManager, duckDuckGoUrlDetector, dispatcherProvider)
+        return EmailInjectorJs(emailManager, loginsManager, duckDuckGoUrlDetector, dispatcherProvider)
     }
 
     @Provides

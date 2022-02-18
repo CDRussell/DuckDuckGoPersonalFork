@@ -84,4 +84,5 @@ interface WebViewClientListener {
     )
 
     fun prefetchFavicon(url: String)
+    fun formDetectedInIFrame(url: String)
 }

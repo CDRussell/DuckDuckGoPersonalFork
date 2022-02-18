@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>SameOrigin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/assets/stylesheet-iframe.css">
+</head>
+<body>
+<form action="https://appassets.androidplatform.net/assets/index.html">
+    <label for="username">Username</label>
+    <br>
+    <input id="username" type="text">
+    <br>
+    <br>
+    <label for="password">Password</label>
+    <br>
+    <input id="password" type="password">
+    <br>
+    <br>
+    <button type="submit">Sign in</button>
+</form>
+
+<script>
+		const form = document.querySelector('form')
+		form.addEventListener('submit', (e) => e.preventDefault())
+
+		window.onmessage = function(event) {
+		    console.log("iFrame received a message: " + event.data);
+		    event.source.postMessage("message generated from within iFrame", event.origin);
+            <!--event.source.postMessage(document.body.innerHTML, event.origin);-->
+        };
+</script>
+
+</body>
+</html>
