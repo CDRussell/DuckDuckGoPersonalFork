@@ -246,11 +246,11 @@ class BrowserWebViewClient(
 
                     val messageData = message.data ?: ""
                     val isUrl = UriString.isWebUrl(messageData)
-                    if(isUrl) {
+                    if (isUrl) {
                         Timber.i("Looks like we have a URL to investigate")
                         appCoroutineScope.launch(dispatcherProvider.io()) {
                             val loginForm = NativeFormDetector().containsLoginForm(message.data!!)
-                            if(loginForm) {
+                            if (loginForm) {
                                 webViewClientListener?.formDetectedInIFrame(messageData)
                             }
                         }

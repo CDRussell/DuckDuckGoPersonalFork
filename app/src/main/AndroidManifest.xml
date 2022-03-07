@@ -22,6 +22,25 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
+
+        <service
+            android:name="com.duckduckgo.app.logins.LoginsPlusService"
+            android:exported="true"
+            android:label="Logins+"
+            android:permission="android.permission.BIND_AUTOFILL_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.autofill.AutofillService" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.autofill"
+                android:resource="@xml/service_configuration" />
+        </service>
+
+
+        <activity android:name="com.duckduckgo.app.logins.AutofillConfigurationActivity"/>
+
+
         <meta-data
             android:name="android.webkit.WebView.MetricsOptOut"
             android:value="true" />

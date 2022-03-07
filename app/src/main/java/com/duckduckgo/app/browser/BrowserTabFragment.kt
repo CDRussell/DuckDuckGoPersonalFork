@@ -146,6 +146,7 @@ import com.duckduckgo.app.global.view.websiteFromGeoLocationsApiOrigin
 import com.duckduckgo.app.location.data.LocationPermissionType
 import com.duckduckgo.app.location.ui.SiteLocationPermissionDialog
 import com.duckduckgo.app.location.ui.SystemLocationPermissionDialog
+import com.duckduckgo.app.logins.AutofillConfigurationActivity
 import com.duckduckgo.app.logins.Credentials
 import com.duckduckgo.app.logins.CredentialsAutofillTooltipFragment
 import com.duckduckgo.app.pixels.AppPixelName
@@ -755,7 +756,7 @@ class BrowserTabFragment :
             is Command.InjectEmailAddress -> injectEmailAddress(it.address)
             is Command.InjectCredentials -> injectCredentials(it.url, it.credentials)
             is Command.ShowCredentialsTooltip -> showCredentialsTooltip(it.url, it.credentials)
-            is Command.ShowCredentialsTooltipIFrame -> showCredentialsTooltip(it.url, it.credentials, targetIsIFrame=true)
+            is Command.ShowCredentialsTooltipIFrame -> showCredentialsTooltip(it.url, it.credentials, targetIsIFrame = true)
             is Command.ShowEmailTooltip -> showEmailTooltip(it.address)
             is Command.EditWithSelectedQuery -> {
                 omnibar.omnibarTextInput.setText(it.query)
@@ -2071,6 +2072,8 @@ class BrowserTabFragment :
                 webView?.loadUrl("$localContentRoot/index.html")
             }
             fireMenuButton?.setOnLongClickListener {
+                startActivity(AutofillConfigurationActivity.intent(requireContext()))
+
                 val url = webView?.url ?: return@setOnLongClickListener true
                 viewModel.saveCredentials(url = url, username = "craig@example.com", password = "pwpwpwpw")
                 viewModel.saveCredentials(url = url, username = "craig@email.com", password = "fakePassword")
@@ -2085,12 +2088,6 @@ class BrowserTabFragment :
                     Timber.i("Sending message to webview using general post mechanism")
                     val message = WebMessageCompat("hello from the native layer")
                     WebViewCompat.postWebMessage(webView!!, message, "*".toUri())
-                }
-
-                if (WebViewFeature.isFeatureSupported(WebViewFeature.POST_WEB_MESSAGE)) {
-                    Timber.i("Sending targeted message to webview")
-                    val message = WebMessageCompat("hello from the native layer")
-
                 }
 
                 true

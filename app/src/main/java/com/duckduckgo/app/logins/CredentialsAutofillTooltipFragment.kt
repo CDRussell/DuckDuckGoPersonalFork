@@ -16,8 +16,6 @@
 
 package com.duckduckgo.app.logins
 
-import android.content.ActivityNotFoundException
-import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -55,7 +53,7 @@ class CredentialsAutofillTooltipFragment private constructor() : BottomSheetDial
         return inflater.inflate(R.layout.content_autofill_credentials_tooltip, container, false)
     }
 
-    fun doOrDoNot(function: ()->Unit) {
+    fun doOrDoNot(function: () -> Unit) {
         function()
     }
 

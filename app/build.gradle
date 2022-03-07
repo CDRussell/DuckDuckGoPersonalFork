@@ -147,7 +147,7 @@ dependencies {
     internalImplementation project(path: ':traces-impl')
 
     implementation AndroidX.legacy.supportV4
-    debugImplementation Square.leakCanary.android
+    //debugImplementation Square.leakCanary.android
 
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
@@ -269,6 +269,7 @@ dependencies {
 
     androidTestImplementation project(path: ':common-test')
     testImplementation project(path: ':common-test')
+    implementation "org.jetbrains.kotlin:kotlin-reflect:1.6.10"
 }
 
 tasks.register('fastlaneVersionCode') {
