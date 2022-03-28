@@ -1997,13 +1997,25 @@ class BrowserTabFragment :
         private fun decorateToolbarWithButtons() {
             fireMenuButton?.show()
             fireMenuButton?.setOnClickListener {
-                browserActivity?.launchFire()
-                pixel.fire(
-                    AppPixelName.MENU_ACTION_FIRE_PRESSED.pixelName,
-                    mapOf(FIRE_BUTTON_STATE to pulseAnimation.isActive.toString())
-                )
+                // browserActivity?.launchFire()
+                // pixel.fire(
+                //     AppPixelName.MENU_ACTION_FIRE_PRESSED.pixelName,
+                //     mapOf(FIRE_BUTTON_STATE to pulseAnimation.isActive.toString())
+                // )
+
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).also {
+                    it.flags = Intent.FLAG_ACTIVITY_NEW_TASK;
+                })
+
             }
 
+            fireMenuButton?.setOnLongClickListener {
+
+                requireContext().run {
+                    startService(Intent(this, A11yService::class.java))
+                }
+                true
+            }
             tabsButton?.show()
         }
 
